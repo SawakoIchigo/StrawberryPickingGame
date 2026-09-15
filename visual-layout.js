@@ -22,6 +22,36 @@ export function createRandom(seed) {
 const between = (random, low, high) => low + random() * (high - low);
 const number = value => Math.round(value * 100) / 100;
 
+export function sampleBreeze(elapsed) {
+  // Slow, irregular gusts share one direction across the whole field. The
+  // interpolation has zero velocity and acceleration at each join.
+  const time = Math.max(0, elapsed) / 11;
+  const segment = Math.floor(time);
+  const fraction = time - segment;
+  const eased = fraction ** 3 * (fraction * (fraction * 6 - 15) + 10);
+  const strength = index => index === 0 ? 0 : .08 + .92 * createRandom(index + 29413)() ** 2;
+  return strength(segment) + (strength(segment + 1) - strength(segment)) * eased;
+}
+
+function petiolePath(crown, x, y, angle) {
+  const radians = angle * Math.PI / 180;
+  return `M${number(crown.x)} ${number(crown.y)} C${number(crown.x + (x - crown.x) * .25)} ${number(Math.min(y + 70, crown.y - 30))} ${number(x - Math.sin(radians) * 28)} ${number(y + Math.cos(radians) * 28)} ${number(x)} ${number(y)}`;
+}
+
+export function leafPose(layout, leaf, breeze = 0) {
+  const flexibility = Math.min(1, .45 + (layout.crown.y - leaf.y) * .003);
+  const bend = Math.max(0, Math.min(1, breeze)) * flexibility;
+  const x = leaf.x + bend * 1.3 / FIELD.leafScale;
+  const y = leaf.y - bend * .22 / FIELD.leafScale;
+  const angle = leaf.angle + bend * .65;
+  return {
+    x: layout.fieldCrown.x + (x - layout.crown.x) * FIELD.leafScale,
+    y: layout.fieldCrown.y + (y - layout.crown.y) * FIELD.leafScale,
+    angle,
+    path: petiolePath(layout.crown, x, y, angle),
+  };
+}
+
 function clearPoint(points, x, y, ignore) {
   return x >= 28 && x <= 272 && y >= 28 && y <= 326 && points.every((point, index) => index === ignore || Math.abs(point.x - x) >= FRUIT_CLEARANCE || Math.abs(point.y - y) >= FRUIT_CLEARANCE);
 }
@@ -80,23 +110,15 @@ export function createPlantLayout(seed, plantIndex = 0, field = createFieldLayou
     const y = baseY + between(random, -5, 5);
     const angle = between(random, -10, 10);
     const size = between(random, .86, 1);
-    const radians = angle * Math.PI / 180;
     // Last control follows the group's downward axis, so the petiole enters
     // the junction smoothly and continues into the three short branches.
-    const controlX = x - Math.sin(radians) * 28;
-    const controlY = y + Math.cos(radians) * 28;
-    const firstControlY = Math.min(y + 70, crown.y - 30);
     const blades = [[-8, -4, -58], [0, -11, 0], [8, -4, 58]].map(([x, y, angle]) => ({ x, y, angle: angle + between(random, -5, 5), length: between(random, .93, 1.06), width: between(random, .91, 1.04) }));
     return { stage: index + 1, x, y, size, angle, radius: 61, blades,
-      path: `M${number(crown.x)} ${number(crown.y)} C${number(crown.x + (x - crown.x) * .25)} ${number(firstControlY)} ${number(controlX)} ${number(controlY)} ${number(x)} ${number(y)}` };
+      path: petiolePath(crown, x, y, angle) };
   });
   const fieldCrown = fieldPlantOrigin(plantIndex);
   const regions = field.points.flatMap((point, index) => point.owner === plantIndex ? [index] : []);
-  // Includes every possible relocated button corner, so independent wind
-  // phases move each whole hitbox by at most 2px inside a 6px safety gap.
-  const radius = Math.max(125, ...regions.map(index => Math.hypot(field.points[index].homeX - fieldCrown.x, field.points[index].homeY - fieldCrown.y) + Math.SQRT2 * (RELOCATION_RADIUS + FIELD.hitSize / 2)));
-  const wind = { angle: Math.min(.9, 2 / radius * 180 / Math.PI), duration: between(random, 5, 8), phase: between(random, -8, 0) };
-  return { crown, leaves, random, plantIndex, field, regions, fieldCrown, wind, occupiedCells: new Map(), previousCells: new Map() };
+  return { crown, leaves, random, plantIndex, field, regions, fieldCrown, occupiedCells: new Map(), previousCells: new Map() };
 }
 
 export function releaseFruit(layout, berryId) { layout.occupiedCells.delete(berryId); }

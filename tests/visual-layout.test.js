@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FIELD, FRUIT_CLEARANCE, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit } from '../visual-layout.js';
+import { FIELD, FRUIT_CLEARANCE, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from '../visual-layout.js';
 
 function checkPositions(positions) {
   const scale = FIELD.minimumScale;
@@ -83,7 +83,6 @@ test('all five plants fit the continuous field without overlapping fruit hitboxe
   for (let seed = 0; seed < 100; seed++) {
     const points = [];
     const field = createFieldLayout(seed);
-    const envelopes = [];
     for (let plant = 0; plant < 5; plant++) {
       const origin = fieldPlantOrigin(plant);
       assert.ok(origin.x > 0 && origin.x < FIELD.width);
@@ -92,24 +91,61 @@ test('all five plants fit the continuous field without overlapping fruit hitboxe
       for (let slot = 0; slot < 7; slot++) {
         const point = placeFruit(layout, slot + 1, slot);
         points.push(point);
-        const rotated = [];
-        for (const sign of [-1, 0, 1]) for (const dx of [-20, 20]) for (const dy of [-20, 20]) {
-          const angle = layout.wind.angle * sign * Math.PI / 180;
-          const x = point.x + dx - origin.x, y = point.y + dy - origin.y;
-          rotated.push({ x: origin.x + x * Math.cos(angle) - y * Math.sin(angle), y: origin.y + x * Math.sin(angle) + y * Math.cos(angle) });
-        }
-        envelopes.push({ left: Math.min(...rotated.map(point => point.x)), right: Math.max(...rotated.map(point => point.x)), top: Math.min(...rotated.map(point => point.y)), bottom: Math.max(...rotated.map(point => point.y)) });
       }
     }
-    for (let i = 0; i < points.length; i++) for (let j = i + 1; j < points.length; j++) {
-      assert.ok(Math.abs(points[i].x - points[j].x) >= FIELD.hitSize || Math.abs(points[i].y - points[j].y) >= FIELD.hitSize);
-    }
     checkPositions(points);
-    for (let a = 0; a < envelopes.length; a++) for (let b = a + 1; b < envelopes.length; b++) {
-      const one = envelopes[a], two = envelopes[b];
-      assert.ok(one.right <= two.left || two.right <= one.left || one.bottom <= two.top || two.bottom <= one.top, 'independent wind extremes preserve clear touch boxes');
+  }
+});
+
+test('breeze is slow and irregular, bending connected leaves while roots and fruit stay fixed', () => {
+  assert.equal(sampleBreeze(0), 0, 'starting the game does not jump to a tilted pose');
+  let previous = sampleBreeze(0);
+  const peaks = new Set();
+  for (let frame = 1; frame <= 180 * 60; frame++) {
+    const value = sampleBreeze(frame / 60);
+    assert.ok(value >= 0 && value <= 1);
+    assert.ok(Math.abs(value - previous) < .003, 'no sudden gust or fast oscillation at display-frame intervals');
+    previous = value;
+    if (frame % 660 === 0) peaks.add(Math.round(value * 100));
+  }
+  assert.ok(peaks.size > 10, 'gust strength does not repeat one pendulum cycle');
+  for (let join = 11; join < 180; join += 11) {
+    assert.ok(Math.abs(sampleBreeze(join - .001) - sampleBreeze(join + .001)) < .000001, 'gust joins are smooth');
+  }
+
+  const field = createFieldLayout(42);
+  const layouts = Array.from({ length: 5 }, (_, plant) => createPlantLayout(plant + 10, plant, field));
+  for (const layout of layouts) for (let slot = 0; slot < 7; slot++) placeFruit(layout, slot + 1, slot);
+  const savedField = structuredClone(field);
+  const savedCrowns = layouts.map(layout => structuredClone(layout.fieldCrown));
+  for (const layout of layouts) for (const leaf of layout.leaves) {
+    const rest = leafPose(layout, leaf, 0);
+    const root = leaf.path.match(/-?\d+(?:\.\d+)?/g).slice(0, 2).map(Number);
+    for (const strength of [0, .1, .5, 1]) {
+      const pose = leafPose(layout, leaf, strength);
+      const path = pose.path.match(/-?\d+(?:\.\d+)?/g).map(Number);
+      assert.deepEqual(path.slice(0, 2), root, 'petiole remains anchored in the soil');
+      assert.ok(Math.hypot(pose.x - rest.x, pose.y - rest.y) <= 1.32);
+      const endpointX = layout.fieldCrown.x + (path[6] - layout.crown.x) * FIELD.leafScale;
+      const endpointY = layout.fieldCrown.y + (path[7] - layout.crown.y) * FIELD.leafScale;
+      assert.ok(Math.hypot(endpointX - pose.x, endpointY - pose.y) < .003, 'leaf and petiole move together without a gap');
+      for (const blade of leaf.blades) {
+        const tip = leafPose => {
+          const angle = leafPose.angle * Math.PI / 180;
+          const bladeAngle = blade.angle * Math.PI / 180;
+          const x = blade.x + Math.sin(bladeAngle) * blade.length * 44;
+          const y = blade.y - Math.cos(bladeAngle) * blade.length * 44;
+          const size = leaf.size * FIELD.leafScale * FIELD.leafSize;
+          return { x: leafPose.x + (x * Math.cos(angle) - y * Math.sin(angle)) * size,
+            y: leafPose.y + (x * Math.sin(angle) + y * Math.cos(angle)) * size };
+        };
+        const before = tip(rest), after = tip(pose);
+        assert.ok(Math.hypot(after.x - before.x, after.y - before.y) < 1.9, 'even the blade tips move less than two field pixels');
+      }
     }
   }
+  assert.deepEqual(field, savedField, 'wind never changes fruit positions or ownership');
+  assert.deepEqual(layouts.map(layout => layout.fieldCrown), savedCrowns);
 });
 
 test('seeded field packing has varied gaps rather than recurring aligned rows and columns', () => {

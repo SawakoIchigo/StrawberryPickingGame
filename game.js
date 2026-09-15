@@ -1,5 +1,5 @@
 import { CONFIG, BERRY_NAMES, createGame, startGame, pauseGame, advance, berryStage, pickBerry, shipPack } from './game-core.js';
-import { FIELD, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit } from './visual-layout.js';
+import { FIELD, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from './visual-layout.js';
 
 let game = createGame();
 let visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
@@ -20,6 +20,7 @@ const fallback = ['🌱', '🌱', '🌿', '🌿', '🌳', '🌱', '🌼', '⚪',
 const plantElements = new Map();
 const berryElements = new Map();
 const berryPoints = CONFIG.berryPoints;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let hasShownHarvestTip = false;
 let harvestTipTimer;
 let guideWasRunning = false;
@@ -123,10 +124,6 @@ function buildPlant(plant) {
   const article = document.createElement('article');
   article.className = 'plant';
   article.setAttribute('aria-label', `${plant.id}ばんの株`);
-  article.style.transformOrigin = `${anatomy.fieldCrown.x}px ${anatomy.fieldCrown.y}px`;
-  article.style.setProperty('--wind-angle', `${anatomy.wind.angle}deg`);
-  article.style.setProperty('--wind-duration', `${anatomy.wind.duration}s`);
-  article.style.setProperty('--wind-phase', `${anatomy.wind.phase}s`);
   const origin = fieldPlantOrigin(plant.id - 1);
   article.innerHTML = '<div class="plant-scene"><svg class="leaf-stalks" viewBox="0 0 300 360" aria-hidden="true" focusable="false"></svg><svg class="plant-art" viewBox="0 0 300 360" aria-hidden="true" focusable="false"></svg><svg class="fruit-stalks" viewBox="0 0 300 360" aria-hidden="true" focusable="false"></svg><div class="berries"></div></div>';
   const leaves = anatomy.leaves.map(leaf => {
@@ -151,7 +148,7 @@ function buildPlant(plant) {
     stalk.setAttribute('transform', `translate(${origin.x - anatomy.crown.x * FIELD.leafScale} ${origin.y - anatomy.crown.y * FIELD.leafScale}) scale(${FIELD.leafScale})`);
     stalk.classList.add('leaf-stalk');
     article.querySelector('.leaf-stalks').append(stalk);
-    return { element, stalk, stage: leaf.stage };
+    return { element, stalk, model: leaf, stage: leaf.stage };
   });
   const slots = [];
   const stalks = [];
@@ -169,6 +166,17 @@ function buildPlant(plant) {
   const view = { article, slots, stalks, leaves, anatomy, stage: 0 };
   plantElements.set(plant.id, view);
   return view;
+}
+function renderBreeze() {
+  if (game.status !== 'running' || reducedMotion.matches) return;
+  const breeze = sampleBreeze(game.elapsed);
+  for (const view of plantElements.values()) for (const leaf of view.leaves) {
+    if (leaf.stage > view.stage) continue;
+    const pose = leafPose(view.anatomy, leaf.model, breeze);
+    const transform = `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.angle.toFixed(3)}) scale(${leaf.model.size * FIELD.leafScale * FIELD.leafSize})`;
+    if (leaf.transform !== transform) { leaf.element.setAttribute('transform', transform); leaf.transform = transform; }
+    if (leaf.path !== pose.path) { leaf.stalk.setAttribute('d', pose.path); leaf.path = pose.path; }
+  }
 }
 function render() {
   document.documentElement.dataset.gameStatus = game.status;
@@ -312,6 +320,7 @@ function frame(now) {
   if (previousFrame !== null) advanceAndShow((now - previousFrame) / 1000);
   previousFrame = now;
   if (now - renderAt >= 100) { render(); renderAt = now; }
+  renderBreeze();
   requestAnimationFrame(frame);
 }
 render();

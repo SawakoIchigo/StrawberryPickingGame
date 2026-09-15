@@ -12,7 +12,7 @@
   <div class="app">
     <header class="topbar">
       <h1>いちごつみゲーム</h1>
-      <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ3 / 3">
+      <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ5 / 5">
         <span aria-hidden="true">ライフ</span><div id="life-hearts" class="life-hearts" aria-hidden="true"></div>
       </div>
     </header>
@@ -23,7 +23,73 @@
     </div>
     <main class="game-layout">
       <section class="farm-panel" aria-label="いちご畑">
-        <div class="farm-viewport" role="region" aria-label="一つの鉢に育つ5株のいちご"><div class="planter"><div class="planter-soil"></div><div class="planter-front"></div></div><div id="farm" class="farm"></div></div>
+        <div class="farm-viewport" role="region" aria-label="一つの鉢に育つ5株のいちご">
+          <div class="planter" aria-hidden="true">
+            <svg viewBox="0 0 300 360" preserveAspectRatio="none" focusable="false">
+              <defs>
+                <linearGradient id="pot-front" x1="0" y1="0" x2=".2" y2="1"><stop stop-color="#ab7747"/><stop offset=".28" stop-color="#926039"/><stop offset="1" stop-color="#603c25"/></linearGradient>
+                <linearGradient id="pot-side" x1="0" y1="0" x2="1" y2=".5"><stop stop-color="#8e5d35"/><stop offset="1" stop-color="#50331f"/></linearGradient>
+                <linearGradient id="pot-rim" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#c49a6b"/><stop offset=".5" stop-color="#ae8051"/><stop offset="1" stop-color="#8c623d"/></linearGradient>
+                <linearGradient id="pot-earth" x1=".15" y1="0" x2=".7" y2="1"><stop stop-color="#30251b"/><stop offset=".45" stop-color="#493525"/><stop offset="1" stop-color="#38291d"/></linearGradient>
+                <radialGradient id="pot-moisture"><stop stop-color="#191610" stop-opacity=".65"/><stop offset="1" stop-color="#251b13" stop-opacity="0"/></radialGradient>
+                <filter id="pot-shadow" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+                <filter id="pot-soil-grain"><feTurbulence type="fractalNoise" baseFrequency=".42 .58" numOctaves="3" seed="23"/><feColorMatrix type="saturate" values="0"/></filter>
+                <filter id="pot-wood-grain"><feTurbulence type="fractalNoise" baseFrequency=".018 .3" numOctaves="2" seed="7"/><feColorMatrix type="saturate" values="0"/></filter>
+                <clipPath id="pot-soil-clip"><path d="M62 40L274 69L233 312L26 284Z"/></clipPath>
+                <clipPath id="pot-wood-clip"><path d="M12 294L242 326L242 345L12 313ZM242 326L288 58L288 78L242 345Z"/></clipPath>
+              </defs>
+              <path d="M15 311L242 344L290 83L248 352L14 320Z" fill="#241b13" opacity=".25" filter="url(#pot-shadow)"/>
+              <path d="M12 294L242 326L242 345L12 313Z" fill="url(#pot-front)" stroke="#54351f" stroke-width="1"/>
+              <path d="M242 326L288 58L288 78L242 345Z" fill="url(#pot-side)" stroke="#54351f" stroke-width="1"/>
+              <g clip-path="url(#pot-wood-clip)">
+                <rect x="10" y="55" width="280" height="295" filter="url(#pot-wood-grain)" opacity=".2" style="mix-blend-mode:soft-light"/>
+                <g fill="none" stroke-linecap="round">
+                  <path d="M16 300C53 304 76 314 115 317S190 326 238 333M15 308C60 311 70 318 108 321S199 335 237 338" stroke="#492d1b" stroke-width=".65" opacity=".5"/>
+                  <path d="M30 303C64 305 65 312 91 314M119 320C153 320 175 330 214 332M252 310C253 268 271 204 276 145" stroke="#d4ad7e" stroke-width=".55" opacity=".45"/>
+                  <path d="M42 303C55 301 70 305 69 308S47 308 42 303M47 304C53 303 59 305 63 306" stroke="#603c23" stroke-width=".7" opacity=".65"/>
+                  <path d="M91 304L91 327M174 316L174 338" stroke="#4d321f" stroke-width="1.2"/>
+                  <path d="M92.5 305L92.5 327M175.5 317L175.5 339" stroke="#c08e5a" stroke-width=".65" opacity=".7"/>
+                </g>
+                <g fill="#463a2e" stroke="#c2996a" stroke-width=".3"><circle cx="23" cy="303" r="1"/><circle cx="83" cy="312" r=".9"/><circle cx="100" cy="314" r="1"/><circle cx="166" cy="324" r="1"/><circle cx="183" cy="326" r=".9"/><circle cx="232" cy="333" r="1"/></g>
+              </g>
+              <path d="M55 26L288 58L242 326L12 294Z" fill="url(#pot-rim)" stroke="#765033" stroke-width="1.2"/>
+              <path d="M60 36L279 66L238 319L21 289Z" fill="#5a4029"/>
+              <path d="M62 40L274 69L233 312L26 284Z" fill="url(#pot-earth)"/>
+              <g clip-path="url(#pot-soil-clip)">
+                <ellipse cx="94" cy="106" rx="88" ry="90" fill="url(#pot-moisture)"/>
+                <ellipse cx="230" cy="252" rx="102" ry="61" fill="url(#pot-moisture)" opacity=".55"/>
+                <rect x="18" y="34" width="265" height="288" filter="url(#pot-soil-grain)" opacity=".34" style="mix-blend-mode:soft-light"/>
+                <g fill="#19150f" opacity=".62">
+                  <ellipse cx="91" cy="61" rx="1.5" ry=".8"/><ellipse cx="169" cy="82" rx="1" ry="1.5"/><ellipse cx="245" cy="104" rx="1.6" ry="1"/>
+                  <ellipse cx="64" cy="118" rx="1.3" ry=".7"/><ellipse cx="119" cy="101" rx=".8" ry="1"/><ellipse cx="207" cy="143" rx="1.7" ry="1.1"/>
+                  <ellipse cx="85" cy="168" rx="1" ry=".6"/><ellipse cx="152" cy="139" rx="1.8" ry="1.1"/><ellipse cx="247" cy="175" rx="1.3" ry=".8"/>
+                  <ellipse cx="46" cy="216" rx="1.7" ry="1"/><ellipse cx="127" cy="201" rx="1" ry="1.5"/><ellipse cx="188" cy="218" rx="1.4" ry=".8"/>
+                  <ellipse cx="93" cy="248" rx="1.7" ry="1"/><ellipse cx="219" cy="261" rx="1.1" ry="1.7"/><ellipse cx="167" cy="277" rx="1.6" ry="1"/>
+                  <ellipse cx="51" cy="272" rx="1.1" ry=".6"/><ellipse cx="119" cy="294" rx="1.9" ry=".8"/>
+                </g>
+                <g fill="#745a40" opacity=".38">
+                  <path d="M105 75l2-1 1 1-1 2-2-1ZM184 62l2 1-1 1-2-.5ZM228 92l3 1-1 2-2-1ZM73 140l2-2 2 1-1 2ZM173 126l2-.5 1 2-2 .5ZM229 187l2-1 1 1-1 1ZM103 209l2-2 1 1-1 2ZM162 230l3 1-1 2-3-1ZM64 254l2-1 2 1-1 1ZM190 291l3 1-2 2-2-1Z"/>
+                  <ellipse cx="142" cy="67" rx=".7" ry=".4"/><ellipse cx="259" cy="126" rx=".8" ry=".5"/><ellipse cx="91" cy="103" rx=".6" ry=".8"/>
+                  <ellipse cx="186" cy="175" rx="1" ry=".5"/><ellipse cx="52" cy="184" rx=".8" ry=".5"/><ellipse cx="136" cy="167" rx=".5" ry=".8"/>
+                  <ellipse cx="213" cy="240" rx=".8" ry=".4"/><ellipse cx="109" cy="266" rx=".6" ry=".7"/><ellipse cx="148" cy="302" rx=".9" ry=".5"/>
+                </g>
+                <g fill="#2c2117" stroke="#886c4d" stroke-width=".35" stroke-opacity=".3">
+                  <path d="M137 114l2-1 2 1-1 2-3-.5ZM75 196l2-1 3 1-1 2-3 .5-2-1ZM216 155l2-1 2 1-.5 2-3-1ZM148 258l3-1 2 2-2 1-3-1ZM222 302l1-2 3 1 .5 2-3 1Z"/>
+                </g>
+                <path d="M62 40L274 69L233 312L26 284Z" fill="none" stroke="#100e0a" stroke-width="9" opacity=".42"/>
+                <path d="M64 44L271 72" fill="none" stroke="#130f0b" stroke-width="5" opacity=".3"/>
+              </g>
+              <g fill="none" stroke-linecap="round">
+                <path d="M56 27L287 59M55 28L13 293M14 294L241 325" stroke="#e1ba89" stroke-width="1" opacity=".85"/>
+                <path d="M60 36L279 66L238 319M21 289L238 319" stroke="#523721" stroke-width="1.2" opacity=".9"/>
+                <path d="M66 32L276 61M53 49L17 282M33 292L223 318" stroke="#765235" stroke-width=".55" opacity=".5"/>
+                <path d="M97 33L95 41M208 48L206 56M94 305L96 299M180 317L182 311" stroke="#765034" stroke-width=".8"/>
+                <path d="M242 327L242 343" stroke="#c49560" stroke-width="1" opacity=".55"/>
+              </g>
+            </svg>
+          </div>
+          <div id="farm" class="farm"></div>
+        </div>
       </section>
       <div class="sidepanels">
       <section class="workbench" aria-labelledby="pack-heading">
@@ -42,7 +108,7 @@
   <dialog id="welcome" aria-labelledby="welcome-title">
     <h2 id="welcome-title">いちごつみゲーム</h2>
     <p>いちごの鉢を育てよう！<br>ピンク・赤・こい赤の実をとって、<br><strong>8こ入りのパック</strong>を出荷しよう。</p>
-    <p class="dialog-note">実が1こくさると、ライフが1つ減るよ。<br>ハート3つがなくなる前に収穫しよう！</p>
+    <p class="dialog-note">実が1こくさると、ライフが1つ減るよ。<br>ハート5つがなくなる前に収穫しよう！</p>
     <button id="start" class="primary">収穫をはじめる</button>
   </dialog>
   <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀️</span><h2 id="pause-title">ちょっと、ひとやすみ</h2><p>いちごの成長は止まっているよ。</p><button id="resume" class="primary">つづける</button></dialog>
