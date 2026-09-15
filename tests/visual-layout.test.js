@@ -77,6 +77,9 @@ test('three to five leaf groups stay separated with smoothly aligned petioles', 
 });
 
 test('all five plants fit the continuous field without overlapping fruit hitboxes', () => {
+  const initialOrigin = fieldPlantOrigin(0);
+  assert.ok(Math.abs(initialOrigin.x - FIELD.width / 2) < 20 && Math.abs(initialOrigin.y - FIELD.height / 2) < 35,
+    'the first plant grows near the center of the planter');
   for (let seed = 0; seed < 100; seed++) {
     const points = [];
     const field = createFieldLayout(seed);
@@ -120,4 +123,42 @@ test('seeded field packing has varied gaps rather than recurring aligned rows an
   }
   assert.ok(new Set(first.points.map(point => Math.round(point.x / 4))).size > 15);
   assert.ok(new Set(first.points.map(point => Math.round(point.y / 4))).size > 15);
+});
+
+test('random fields do not repeatedly concentrate fruit into evenly spaced bands', () => {
+  const concentration = (points, axis) => {
+    let strongest = 0;
+    // Small jitter can disguise rows in rounded-coordinate counts. Repeating
+    // rows still share a phase at their pitch; scattered positions do not.
+    for (let pitch = FIELD.hitSize; pitch <= FIELD.hitSize * 1.5; pitch++) {
+      let cosine = 0, sine = 0;
+      for (const point of points) {
+        const phase = point[axis] / pitch * Math.PI * 2;
+        cosine += Math.cos(phase); sine += Math.sin(phase);
+      }
+      strongest = Math.max(strongest, Math.hypot(cosine, sine) / points.length);
+    }
+    return strongest;
+  };
+  const scores = [];
+  for (let seed = 0; seed < 32; seed++) {
+    const field = createFieldLayout(seed);
+    const layouts = Array.from({ length: 5 }, (_, plant) => createPlantLayout(seed * 5 + plant, plant, field));
+    const fruit = layouts.flatMap(layout => Array.from({ length: 7 }, (_, slot) => ({ layout, id: slot + 1, slot, ...placeFruit(layout, slot + 1, slot) })));
+    for (let cohort = 0; cohort < 20; cohort++) {
+      const index = cohort % fruit.length;
+      const { layout, id, slot } = fruit[index];
+      const neighbors = fruit.filter((_, i) => i !== index).map(point => ({ cell: point.cell, x: point.x, y: point.y }));
+      releaseFruit(layout, id);
+      fruit[index] = { layout, id: 8 + cohort, slot, ...placeFruit(layout, 8 + cohort, slot) };
+      for (const neighbor of neighbors) {
+        assert.equal(field.points[neighbor.cell].x, neighbor.x, 'regrowth does not move existing fruit');
+        assert.equal(field.points[neighbor.cell].y, neighbor.y, 'regrowth does not move existing fruit');
+      }
+      checkPositions(fruit);
+    }
+    scores.push(concentration(fruit, 'x'), concentration(fruit, 'y'));
+  }
+  assert.ok(scores.reduce((sum, score) => sum + score, 0) / scores.length < .6,
+    'field and regrowth layouts avoid the strong repeating bands of a jittered grid');
 });

@@ -3,6 +3,7 @@ export const CONFIG = Object.freeze({
   growthJitterSeconds: 2,
   maxPlants: 5,
   packSize: 8,
+  initialLives: 3,
   berryStageSeconds: Object.freeze([4, 4, 5, 5, 7, 5, 4]),
   berryPoints: Object.freeze([0, 0, 0, 50, 150, 50, -50]),
   plantCapacity: Object.freeze({ 3: 3, 4: 5, 5: 7 }),
@@ -25,7 +26,7 @@ function addPlant(game, stage) {
   return plant;
 }
 export function createGame(seed = Math.floor(Math.random() * 0x100000000)) {
-  const game = { status: 'ready', elapsed: 0, shipments: 0, missed: 0, score: 0, pack: [], plants: [], nextPlantId: 1, nextBerryId: 1, rngState: seed >>> 0 };
+  const game = { status: 'ready', elapsed: 0, shipments: 0, missed: 0, score: 0, lives: CONFIG.initialLives, pack: [], plants: [], nextPlantId: 1, nextBerryId: 1, rngState: seed >>> 0 };
   addPlant(game, 3);
   processEvents(game);
   return game;
@@ -48,8 +49,10 @@ function processEvents(game, events = []) {
         berry.countedRotten = true;
         game.missed++;
         game.score += CONFIG.berryPoints[6];
+        game.lives = Math.max(0, game.lives - 1);
         events.push({ type: 'rot', plantId: plant.id, berryId: berry.id, slot: berry.slot,
           points: CONFIG.berryPoints[6], at: game.elapsed });
+        if (game.lives === 0) { game.status = 'gameover'; return; }
       }
     }
     plant.berries = plant.berries.filter(berry => berryStage(berry, game.elapsed) !== -1);
@@ -69,7 +72,7 @@ export function advance(game, seconds) {
   const events = [];
   if (game.status !== 'running' || !Number.isFinite(seconds) || seconds <= 0) return events;
   const target = game.elapsed + seconds;
-  while (game.elapsed < target) {
+  while (game.status === 'running' && game.elapsed < target) {
     let next = target;
     for (const plant of game.plants) {
       next = Math.min(next, plant.nextGrowthAt, plant.nextSpawnAt);

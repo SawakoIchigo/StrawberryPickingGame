@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import { CONFIG, createGame, startGame, pauseGame, advance, berryStage, pickBerry, shipPack } from '../game-core.js';
 
 function running(seed = 123456789) { const game = createGame(seed); startGame(game); return game; }
+function runningWithSpareLives(seed) {
+  // Long-duration scheduling tests need to observe later plants independently
+  // of the normal three-life gameover rule. No production option bypasses it.
+  const game = running(seed);
+  game.lives = 10000;
+  return game;
+}
 function advanceTo(game, time) { return advance(game, time - game.elapsed); }
 function fillPack(game) {
   for (let seconds = 0; game.pack.length < CONFIG.packSize && seconds < 500; seconds++) {
@@ -33,6 +40,7 @@ test('initial farm starts with one stage-three plant, zero score and waits for s
   assert.equal(game.plants.length, 1);
   assert.equal(game.plants[0].stage, 3);
   assert.equal(game.score, 0);
+  assert.equal(game.lives, 3);
   assert.equal(berryStage(game.plants[0].berries[0], 0), 0);
   const saved = structuredClone(game);
   assert.deepEqual(advance(game, 100), []);
@@ -40,7 +48,7 @@ test('initial farm starts with one stage-three plant, zero score and waits for s
 });
 
 test('each plant transition uses saved 13–17 seconds and spawns its neighbor at stage five', () => {
-  const game = running();
+  const game = runningWithSpareLives();
   const initial = game.plants[0];
   const durations = [];
   function grow(plant, expectedStage) {
@@ -74,7 +82,7 @@ test('each plant transition uses saved 13–17 seconds and spawns its neighbor a
 });
 
 test('individual berry and plant durations stay within range and vary independently', () => {
-  const game = running(987654321);
+  const game = runningWithSpareLives(987654321);
   const observed = new Set();
   const jitterByStage = CONFIG.berryStageSeconds.map(() => new Set());
   const plantDurations = new Set();
@@ -111,7 +119,7 @@ test('individual berry and plant durations stay within range and vary independen
 });
 
 test('reading ripeness and pausing preserve schedules and RNG; clones resume identically', () => {
-  const game = running();
+  const game = runningWithSpareLives();
   advance(game, 73);
   const saved = structuredClone(game);
   for (let read = 0; read < 100; read++) {
@@ -140,10 +148,12 @@ test('a berry changes at each saved boundary, emits one rot event, then disappea
       targetEvents.push(...advanceTo(game, at - .001).filter(event => event.berryId === berry.id));
       assert.equal(berryStage(berry, game.elapsed), boundary);
       const scoreBefore = game.score;
+      const livesBefore = game.lives;
       const events = advanceTo(game, at);
       targetEvents.push(...events.filter(event => event.berryId === berry.id));
       assert.equal(berryStage(berry, game.elapsed), boundary === 6 ? -1 : boundary + 1);
       assert.equal(game.score - scoreBefore, events.reduce((total, event) => total + event.points, 0));
+      assert.equal(game.lives, livesBefore - events.length);
       assert.equal(game.plants[0].berries.some(item => item.id === berry.id), boundary < 6);
     }
     assert.deepEqual(targetEvents, [rotEvent(1, berry)]);
@@ -160,9 +170,11 @@ test('an expired berry loses points once even if its rotten stage was skipped', 
   assert.deepEqual(advance(game, 1), [{ ...rotEvent(1, berry), at: 1 }]);
   assert.equal(game.missed, 1);
   assert.equal(game.score, -50);
+  assert.equal(game.lives, 2);
   assert.ok(!game.plants[0].berries.some(item => item.id === berry.id));
   assert.deepEqual(advance(game, 1), []);
   assert.equal(game.score, -50);
+  assert.equal(game.lives, 2, 'expiry cannot remove another life for the same berry');
 });
 
 test('picked berries never produce a later rot notification', () => {
@@ -211,7 +223,7 @@ test('pink, red and dark red at their random boundaries earn 50/150/50 once', ()
 });
 
 test('pack limit is eight, shipping is explicit and picked ripeness and score are preserved', () => {
-  const game = running();
+  const game = runningWithSpareLives();
   assert.equal(shipPack(game), false);
   fillPack(game);
   assert.equal(game.score, game.pack.reduce((total, berry) => total + CONFIG.berryPoints[berry.stage], 0) - game.missed * 50);
@@ -257,8 +269,8 @@ test('pause freezes the farm and blocks harvest and shipment', () => {
 
 test('large random updates match small steps including RNG, schedules, score and ordered rot events', () => {
   for (const seed of [0, 1, 42, 123456789, 0xffffffff]) {
-    const large = running(seed);
-    const small = running(seed);
+    const large = runningWithSpareLives(seed);
+    const small = runningWithSpareLives(seed);
     const largeEvents = advance(large, 1200);
     const smallEvents = [];
     for (let i = 0; i < 4800; i++) smallEvents.push(...advance(small, .25));
@@ -312,4 +324,113 @@ test('creating a new game resets points earned in the previous game', () => {
   assert.equal(restarted.missed, 0);
   assert.equal(restarted.shipments, 0);
   assert.equal(restarted.pack.length, 0);
+  assert.equal(restarted.lives, 3);
+});
+
+test('each plant stays within seven unique fruit slots through growth, harvest, pause and regrowth', () => {
+  for (const seed of [1, 42, 0xffffffff]) {
+    const game = runningWithSpareLives(seed);
+    const fullPlants = new Set();
+    const observedStages = new Set();
+    let harvested = 0;
+    for (let step = 0; step < 3600; step++) {
+      advance(game, .25);
+      for (const plant of game.plants) {
+        const capacity = CONFIG.plantCapacity[plant.stage] ?? 0;
+        observedStages.add(plant.stage);
+        assert.ok(plant.berries.length <= capacity && plant.berries.length <= 7);
+        assert.equal(new Set(plant.berries.map(berry => berry.slot)).size, plant.berries.length);
+        assert.ok(plant.berries.every(berry => Number.isInteger(berry.slot) && berry.slot >= 0 && berry.slot < capacity));
+        if (plant.berries.length === 7) fullPlants.add(plant.id);
+        // Alternate unattended growth with harvesting, so both expiry and
+        // picking repeatedly release slots for new fruit on mature plants.
+        if (game.elapsed % 90 >= 45) for (const berry of [...plant.berries]) {
+          if (pickBerry(game, plant.id, berry.id)) harvested++;
+          if (game.pack.length === CONFIG.packSize) shipPack(game);
+        }
+      }
+      if (step % 720 === 0) {
+        pauseGame(game);
+        const paused = structuredClone(game);
+        advance(game, 60);
+        assert.deepEqual(game, paused);
+        startGame(game);
+      }
+    }
+    assert.deepEqual([...observedStages].sort(), [1, 2, 3, 4, 5]);
+    assert.equal(fullPlants.size, CONFIG.maxPlants, 'all five plants can reach the seven-fruit limit');
+    assert.ok(harvested > 100 && game.missed > 100 && game.shipments > 10);
+  }
+});
+
+test('three natural rot events end the game at the same exact instant for large and small updates', () => {
+  for (const seed of [0, 1, 42, 123456789, 0xffffffff]) {
+    const reference = runningWithSpareLives(seed);
+    const expectedEvents = advance(reference, 1200).slice(0, 3);
+    const large = running(seed), small = running(seed);
+    const events = advance(large, 1200);
+    const smallEvents = [];
+    for (let step = 0; step < 4800; step++) smallEvents.push(...advance(small, .25));
+    assert.deepEqual(events, expectedEvents);
+    assert.deepEqual(smallEvents, expectedEvents);
+    assert.deepEqual(large, small);
+    assert.equal(large.elapsed, expectedEvents[2].at);
+    assert.equal(large.status, 'gameover');
+    assert.equal(large.lives, 0);
+    assert.equal(large.missed, 3);
+    assert.equal(large.score, -150);
+  }
+});
+
+test('the third loss stops same-timestamp rot processing, including already expired berries', () => {
+  for (const expired of [false, true]) {
+    const game = running();
+    const plant = game.plants[0];
+    plant.stage = 5; plant.nextGrowthAt = Infinity; plant.nextSpawnAt = Infinity;
+    const template = plant.berries[0];
+    plant.berries = Array.from({ length: 5 }, (_, slot) => ({ ...template, id: slot + 1, slot,
+      stageEndsAt: expired ? [-7, -6, -5, -4, -3, -2, -1] : [-4, -3, -2, -1, 0, 1, 5] }));
+    const events = advance(game, expired ? 1 : 10);
+    assert.deepEqual(events.map(event => [event.berryId, event.at]), [[1, 1], [2, 1], [3, 1]]);
+    assert.deepEqual(plant.berries.map(berry => berry.countedRotten), [true, true, true, false, false]);
+    assert.equal(game.elapsed, 1);
+    assert.equal(game.lives, 0);
+    assert.equal(game.missed, 3);
+    assert.equal(game.score, -150);
+    assert.equal(game.status, 'gameover');
+    const stopped = structuredClone(game);
+    assert.deepEqual(advance(game, 100), []);
+    assert.deepEqual(game, stopped);
+  }
+});
+
+test('gameover blocks start, resume, pause, harvest and full-pack shipping until a new game', () => {
+  const game = running();
+  fillPack(game);
+  advance(game, 1200);
+  assert.equal(game.status, 'gameover');
+  assert.equal(game.pack.length, 8);
+  const { plant, berry } = waitForRipe(game);
+  const stopped = structuredClone(game);
+  startGame(game); pauseGame(game);
+  assert.equal(pickBerry(game, plant.id, berry.id), false);
+  assert.equal(shipPack(game), false);
+  assert.deepEqual(advance(game, 1200), []);
+  assert.deepEqual(game, stopped);
+  const unfilled = running();
+  advance(unfilled, 1200);
+  assert.equal(unfilled.pack.length, 0);
+  const pickable = waitForRipe(unfilled);
+  const unfilledStopped = structuredClone(unfilled);
+  assert.equal(pickBerry(unfilled, pickable.plant.id, pickable.berry.id), false, 'gameover also blocks a ripe berry when the pack has room');
+  assert.deepEqual(unfilled, unfilledStopped);
+  const restarted = createGame();
+  assert.equal(restarted.status, 'ready');
+  assert.equal(restarted.lives, 3);
+  assert.equal(restarted.elapsed, 0);
+  assert.equal(restarted.score, 0);
+  assert.equal(restarted.missed, 0);
+  assert.equal(restarted.pack.length, 0);
+  startGame(restarted);
+  assert.equal(restarted.status, 'running');
 });

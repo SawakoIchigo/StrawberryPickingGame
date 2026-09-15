@@ -2,9 +2,9 @@
 export const SCENE = Object.freeze({ width: 300, height: 330, minimumWidth: 250, hitSize: 48 });
 // minimumScale is the supported 320×568-and-larger phone baseline for tests;
 // the UI may scale further on unusually small screens instead of clipping.
-export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 40, minimumScale: .8, leafScale: .4 });
+export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 40, minimumScale: .8, leafScale: .4, leafSize: 1.35 });
 export function fieldPlantOrigin(index) {
-  return [{ x: 84, y: 125 }, { x: 219, y: 125 }, { x: 84, y: 218 }, { x: 219, y: 218 }, { x: 150, y: 305 }][index];
+  return [{ x: 150, y: 205 }, { x: 84, y: 125 }, { x: 219, y: 125 }, { x: 84, y: 290 }, { x: 219, y: 290 }][index];
 }
 export const FRUIT_CLEARANCE = 46;
 const RELOCATION_RADIUS = 18;
@@ -25,19 +25,23 @@ const number = value => Math.round(value * 100) / 100;
 function clearPoint(points, x, y, ignore) {
   return x >= 28 && x <= 272 && y >= 28 && y <= 326 && points.every((point, index) => index === ignore || Math.abs(point.x - x) >= FRUIT_CLEARANCE || Math.abs(point.y - y) >= FRUIT_CLEARANCE);
 }
+function alignmentCost(points, x, y, ignore) {
+  // Penalize shared horizontal/vertical bands without prescribing new rows.
+  return points.reduce((cost, point, index) => cost + (index === ignore ? 0
+    : Math.max(0, 1 - Math.abs(point.x - x) / 10) ** 2 + Math.max(0, 1 - Math.abs(point.y - y) / 10) ** 2), 0);
+}
 export function createFieldLayout(seed) {
   const random = createRandom(seed);
   const points = [];
-  // A guaranteed safe starting population; randomized gaps and then thousands
-  // of accepted hard-square moves dissolve the initial rows without retries.
-  for (let row = 0; row < 7; row++) {
-    const gaps = Array.from({ length: 6 }, () => .1 + random());
-    const total = gaps.reduce((sum, gap) => sum + gap, 0);
-    let x = 28 + gaps[0] / total * 60;
-    for (let column = 0; column < 5; column++) {
-      points.push({ x, y: 28 + row * 48 });
-      x += FRUIT_CLEARANCE + gaps[column + 1] / total * 60;
-    }
+  // Seven random vacancies let fruit move between bands. A full 5-by-7
+  // starting grid traps them in rows even after many collision-safe moves.
+  const cells = Array.from({ length: 42 }, (_, index) => index);
+  for (let index = cells.length - 1; index > 0; index--) {
+    const other = Math.floor(random() * (index + 1));
+    [cells[index], cells[other]] = [cells[other], cells[index]];
+  }
+  for (const cell of cells.slice(0, 35)) {
+    points.push({ x: 28 + cell % 6 * 244 / 5, y: 28 + Math.floor(cell / 6) * 298 / 6 });
   }
   for (let step = 0; step < 22000; step++) {
     const index = Math.floor(random() * points.length);
@@ -45,7 +49,10 @@ export function createFieldLayout(seed) {
     const globalMove = step % 4 === 0;
     const x = globalMove ? between(random, 28, 272) : point.x + between(random, -24, 24);
     const y = globalMove ? between(random, 28, 326) : point.y + between(random, -24, 24);
-    if (clearPoint(points, x, y, index)) { point.x = x; point.y = y; }
+    if (!clearPoint(points, x, y, index)) continue;
+    const improvement = alignmentCost(points, point.x, point.y, index) - alignmentCost(points, x, y, index);
+    // Keep some less favorable moves so the packing can escape local ruts.
+    if (random() < Math.exp(improvement * 4)) { point.x = x; point.y = y; }
   }
   const cost = (point, plant) => {
     const crown = fieldPlantOrigin(plant);

@@ -5,24 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#c8f0fb">
   <meta name="description" content="いちごを育てて、8こ入りのパックを出荷しよう。タップで遊べる、時間制限のないいちご収穫ゲーム。">
-  <title>いちごの収穫日和</title>
+  <title>いちごつみゲーム</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
-      <h1><span aria-hidden="true">🍓</span> いちごの収穫日和</h1>
-      <div class="controls"><button id="pause" disabled aria-label="ひとやすみ">休む</button><button id="restart" aria-label="はじめからやりなおす">↻</button></div>
+      <h1>いちごつみゲーム</h1>
+      <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ3 / 3">
+        <span aria-hidden="true">ライフ</span><div id="life-hearts" class="life-hearts" aria-hidden="true"></div>
+      </div>
     </header>
     <div class="stats" aria-label="収穫のきろく">
       <div class="score-stat"><span>合計ポイント</span><strong><b id="score">0</b><small> 点</small></strong></div>
-      <div><span>あそんだ時間</span><strong id="elapsed">0:00</strong></div>
       <div><span>出荷できたよ</span><strong><b id="shipments">0</b><small> パック</small></strong></div>
-      <div><span>くさった実</span><strong><b id="missed">0</b><small> こ</small></strong></div>
+      <div class="stats-controls"><div class="controls"><button id="pause" disabled aria-label="ひとやすみ">休む</button><button id="restart" aria-label="はじめからやりなおす">↻</button></div></div>
     </div>
     <main class="game-layout">
-      <section class="farm-panel" aria-labelledby="farm-heading">
-        <div class="section-heading"><h2 id="farm-heading">いちごの鉢</h2><span id="plant-count">1 / 5 株</span></div>
+      <section class="farm-panel" aria-label="いちご畑">
         <div class="farm-viewport" role="region" aria-label="一つの鉢に育つ5株のいちご"><div class="planter"><div class="planter-soil"></div><div class="planter-front"></div></div><div id="farm" class="farm"></div></div>
       </section>
       <div class="sidepanels">
@@ -40,13 +40,14 @@
   </div>
   <dialog id="guide-dialog" aria-labelledby="growth-heading"><h2 id="growth-heading">いちごの成長とポイント</h2><div id="legend" class="legend"></div><button id="close-guide">とじる</button></dialog>
   <dialog id="welcome" aria-labelledby="welcome-title">
-    <span class="dialog-emoji" aria-hidden="true">🍓</span><h2 id="welcome-title">いちごの収穫日和</h2>
+    <h2 id="welcome-title">いちごつみゲーム</h2>
     <p>いちごの鉢を育てよう！<br>ピンク・赤・こい赤の実をとって、<br><strong>8こ入りのパック</strong>を出荷しよう。</p>
-    <p class="dialog-note">実はだんだん育って、最後はくさっちゃう。<br>時間制限はないよ。自分のペースで楽しもう！</p>
+    <p class="dialog-note">実が1こくさると、ライフが1つ減るよ。<br>ハート3つがなくなる前に収穫しよう！</p>
     <button id="start" class="primary">収穫をはじめる</button>
   </dialog>
   <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀️</span><h2 id="pause-title">ちょっと、ひとやすみ</h2><p>いちごの成長は止まっているよ。</p><button id="resume" class="primary">つづける</button></dialog>
   <dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">はじめから遊ぶ？</h2><p>いまのパックと収穫のきろくが<br>ゼロになるよ。</p><div class="dialog-actions"><button id="cancel-restart">もどる</button><button id="confirm-restart" class="primary">はじめから</button></div></dialog>
+  <dialog id="gameover-dialog" aria-labelledby="gameover-title"><h2 id="gameover-title">ゲーム終了</h2><p>ハートがなくなったよ。<br>遊んでくれてありがとう！</p><p id="gameover-result"></p><button id="play-again" class="primary">もう一度あそぶ</button></dialog>
   <script type="module" src="./game.js"></script>
 </body>
 </html>
