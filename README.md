@@ -68,7 +68,7 @@ node --check game-core.js
 node --check game.js
 ```
 
-自動テスト25件とJavaScriptの構文検証が成功しています。HTMLからのファイル参照、ローカル配信、PC上の縦9:16枠でのブラウザー表示・操作も確認済みです。
+自動テスト26件とJavaScriptの構文検証が成功しています。HTMLからのファイル参照、ローカル配信、PC上の縦9:16枠でのブラウザー表示・操作も確認済みです。
 
 成長時間のランダム化と新しい風・配置は、320×568・390×844でブラウザー確認済みです。5本の苗と最大35個の実が枠内に収まり、操作領域の重複はありません。風による揺れ、実の配置の維持、一時停止・再開、実の位置からの加点表示、8個収穫後の満杯制限と出荷、やりなおしによる初期化を確認しています。
 
@@ -79,6 +79,17 @@ node --check game.js
 ## GitHub Pages で公開
 
 公開用ワークフローは `.github/workflows/pages.yml` です。ゲームと画像だけを公開用フォルダにまとめ、テストに成功した場合に公開します。
+
+公開時はHTML・JavaScript・CSSの内容から共通の版を決め、JavaScriptの内部読み込み先も含めて版付きファイル名を参照します。更新前のJavaScriptと更新後のHTMLが混ざることを防ぎます。古いHTML向けの通常ファイル名も残しますが、すでに開いている画面には再読み込みが必要です。
+
+Node.js 24で公開用ファイルをローカル生成・確認できます。
+
+```powershell
+node scripts/build-site.mjs
+python -m http.server 8000 --bind 127.0.0.1 --directory _site
+```
+
+生成先の `_site/` はGit管理対象外です。
 
 1. リポジトリの **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に設定します。
 2. ファイルを `main` ブランチに push するか、Actions の **Deploy strawberry game to Pages** を手動実行します。

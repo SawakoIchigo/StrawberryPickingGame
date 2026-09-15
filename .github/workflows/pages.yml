@@ -28,12 +28,10 @@ jobs:
           node --check game-core.js
           node --check game.js
           node --check visual-layout.js
+          node --check scripts/build-site.mjs
           node --test
       - name: Prepare game files
-        run: |
-          mkdir _site
-          cp index.html styles.css game-core.js game.js visual-layout.js .nojekyll _site/
-          cp -R assets _site/assets
+        run: node scripts/build-site.mjs
       - name: Upload game
         uses: actions/upload-pages-artifact@v4
         with:
