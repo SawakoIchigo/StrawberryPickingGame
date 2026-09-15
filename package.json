@@ -1,0 +1,6 @@
+{
+  "name": "strawberry-picking-game",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}
