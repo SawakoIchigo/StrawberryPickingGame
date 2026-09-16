@@ -3,8 +3,19 @@ export const SCENE = Object.freeze({ width: 300, height: 330, minimumWidth: 250,
 // minimumScale is the supported 320×568-and-larger phone baseline for tests;
 // the UI may scale further on unusually small screens instead of clipping.
 export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 30, minimumScale: .8, leafScale: .22, leafSize: 1.35 });
-export function fieldPlantOrigin(index) {
-  return [{ x: 150, y: 200 }, { x: 150, y: 100 }, { x: 225, y: 150 }, { x: 225, y: 250 }, { x: 150, y: 300 }, { x: 75, y: 250 }, { x: 75, y: 150 }][index];
+export function fieldPlantOrigin(index, field) {
+  const position = field ? field.plantOrder[index] : index;
+  return [{ x: 150, y: 200 }, { x: 150, y: 100 }, { x: 225, y: 150 }, { x: 225, y: 250 }, { x: 150, y: 300 }, { x: 75, y: 250 }, { x: 75, y: 150 }][position];
+}
+export function createPlantOrder(seed) {
+  const random = createRandom(seed);
+  const order = [0, 1, 2, 3, 4, 5, 6];
+  // The first crown stays central; later crowns use the six outer positions once.
+  for (let index = order.length - 1; index > 1; index--) {
+    const other = 1 + Math.floor(random() * index);
+    [order[index], order[other]] = [order[other], order[index]];
+  }
+  return Object.freeze(order);
 }
 // Matches the six soil vertices in the planter SVG.
 export const SOIL_HEX = Object.freeze([[150, 12], [290, 88], [286, 270], [148, 338], [10, 266], [14, 86]].map(Object.freeze));
@@ -74,6 +85,7 @@ function alignmentCost(points, x, y, ignore) {
 }
 export function createFieldLayout(seed) {
   const random = createRandom(seed);
+  const plantOrder = createPlantOrder(seed);
   const points = [];
   // Vacant cells give the collision-safe relaxation room to break up rows.
   const cells = [];
@@ -99,7 +111,7 @@ export function createFieldLayout(seed) {
     if (random() < Math.exp(improvement * 4)) { point.x = x; point.y = y; }
   }
   const cost = (point, plant) => {
-    const crown = fieldPlantOrigin(plant);
+    const crown = fieldPlantOrigin(plant, { plantOrder });
     return (point.x - crown.x) ** 2 + (point.y - crown.y) ** 2;
   };
   const edges = points.flatMap((point, index) => Array.from({ length: 7 }, (_, plant) => ({ index, plant, cost: cost(point, plant) }))).sort((a, b) => a.cost - b.cost);
@@ -112,7 +124,7 @@ export function createFieldLayout(seed) {
     if (first.owner !== second.owner && cost(first, second.owner) + cost(second, first.owner) < cost(first, first.owner) + cost(second, second.owner)) [first.owner, second.owner] = [second.owner, first.owner];
   }
   for (const point of points) { point.homeX = point.x; point.homeY = point.y; }
-  return { points };
+  return { points, plantOrder };
 }
 
 export function createPlantLayout(seed, plantIndex = 0, field = createFieldLayout(seed)) {
@@ -130,7 +142,7 @@ export function createPlantLayout(seed, plantIndex = 0, field = createFieldLayou
     return { stage: index + 1, x, y, size, angle, radius: 61, blades,
       path: petiolePath(crown, x, y, angle) };
   });
-  const fieldCrown = fieldPlantOrigin(plantIndex);
+  const fieldCrown = fieldPlantOrigin(plantIndex, field);
   const regions = field.points.flatMap((point, index) => point.owner === plantIndex ? [index] : []);
   return { crown, leaves, random, plantIndex, field, regions, fieldCrown, occupiedCells: new Map(), previousCells: new Map() };
 }
@@ -166,8 +178,11 @@ export function placeFruit(layout, berryId, slot) {
 export function stepScoreDisplay(state, target, now, immediate = false) {
   if (immediate) return { value: target, at: now, active: false };
   if (state.value === target) return { value: target, at: now, active: false };
-  const steps = Math.floor(Math.max(0, now - state.at) / 40);
+  // Start a fresh visible interval even after a slow frame or idle tab.
+  if (!state.active) return { value: state.value, at: now, active: true };
+  // Never skip intermediate tens to catch up after a delayed frame.
+  const steps = now - state.at >= 70 ? 1 : 0;
   const difference = target - state.value;
   const value = state.value + Math.sign(difference) * Math.min(Math.abs(difference), steps * 10);
-  return { value, at: steps ? state.at + steps * 40 : state.at, active: value !== target };
+  return { value, at: steps ? now : state.at, active: value !== target };
 }

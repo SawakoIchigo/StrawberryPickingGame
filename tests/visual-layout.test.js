@@ -1,7 +1,7 @@
 import test from 'node:test';
-import { CONFIG } from '../game-core.js';
+import { CONFIG, createGame, startGame, advance, pickBerry } from '../game-core.js';
 import assert from 'node:assert/strict';
-import { FIELD, FRUIT_CLEARANCE, insideSoil, fruitInsideSoil, stepScoreDisplay, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from '../visual-layout.js';
+import { FIELD, FRUIT_CLEARANCE, insideSoil, fruitInsideSoil, stepScoreDisplay, fieldPlantOrigin, createPlantOrder, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from '../visual-layout.js';
 
 function checkPositions(positions) {
   const scale = FIELD.minimumScale;
@@ -216,20 +216,77 @@ test('seven owners match game capacity and all leaf envelopes remain inside hexa
   }
 });
 
-test('score display counts ten points every 40ms toward the latest target and snaps on reset', () => {
+test('plant births keep the center first and shuffle each outer position exactly once', () => {
+  const orders = new Set();
+  const positionsByBirth = Array.from({ length: 6 }, () => new Set());
+  for (let seed = 0; seed < 256; seed++) {
+    const order = createPlantOrder(seed);
+    assert.equal(order[0], 0);
+    assert.deepEqual([...order].sort(), [0, 1, 2, 3, 4, 5, 6]);
+    assert.deepEqual(order, createPlantOrder(seed));
+    assert.ok(Object.isFrozen(order));
+    orders.add(order.join(','));
+    order.slice(1).forEach((position, index) => positionsByBirth[index].add(position));
+  }
+  assert.ok(orders.size > 150, 'new games have a variety of birth orders');
+  assert.ok(positionsByBirth.every(positions => positions.size === 6), 'each later birth can appear at any outer position');
+  const field = createFieldLayout(42);
+  const order = [...field.plantOrder];
+  const fruit = [];
+  for (let birth = 0; birth < 7; birth++) {
+    const layout = createPlantLayout(birth + 100, birth, field);
+    assert.deepEqual(layout.fieldCrown, fieldPlantOrigin(order[birth]));
+    assert.deepEqual(layout.fieldCrown, fieldPlantOrigin(birth, field));
+    assert.equal(layout.regions.length, 7);
+    assert.ok(layout.regions.every(index => field.points[index].owner === birth));
+    for (let slot = 0; slot < 7; slot++) fruit.push(placeFruit(layout, slot + 1, slot));
+    assert.deepEqual(field.plantOrder, order, 'later births cannot move earlier plants');
+  }
+  checkPositions(fruit);
+});
+
+test('score display visits every ten toward the latest target and clears its active state', () => {
   let state = { value: 100, at: 0, active: false };
+  state = stepScoreDisplay(state, 150, 1000);
+  assert.deepEqual(state, { value: 100, at: 1000, active: true });
   for (let index = 1; index <= 5; index++) {
-    state = stepScoreDisplay(state, 150, index * 40);
+    state = stepScoreDisplay(state, 150, 1000 + index * 70);
     assert.equal(state.value, 100 + index * 10);
     assert.equal(state.active, index !== 5);
   }
-  state = stepScoreDisplay(state, 300, 240);
+  state = stepScoreDisplay(state, 300, 1400);
+  state = stepScoreDisplay(state, 300, 1470);
   assert.equal(state.value, 160);
-  state = stepScoreDisplay(state, -340, 280);
+  state = stepScoreDisplay(state, -340, 1540);
   assert.equal(state.value, 150);
-  state = stepScoreDisplay(state, -340, 2240);
+  state = stepScoreDisplay(state, -340, 3000);
+  assert.equal(state.value, 140, 'slow frames do not jump over the intermediate tens');
+  for (let index = 1; index <= 48; index++) state = stepScoreDisplay(state, -340, 3000 + index * 70);
   assert.equal(state.value, -340);
   assert.equal(state.active, false);
-  assert.deepEqual(stepScoreDisplay(state, 0, 2250, true), { value: 0, at: 2250, active: false });
-  assert.equal(stepScoreDisplay(state, 999999, 2250, true).value, 999999);
+  state = stepScoreDisplay(state, 50, 6400);
+  assert.equal(state.active, true);
+  assert.deepEqual(stepScoreDisplay(state, 0, 6450, true), { value: 0, at: 6450, active: false });
+  assert.equal(stepScoreDisplay(state, 999999, 6450, true).value, 999999);
+});
+
+test('harvesting a pink or dark-red berry immediately awards 50 while the display visits each ten', () => {
+  for (const stage of [3, 5]) {
+    const game = createGame(42);
+    startGame(game);
+    const berry = game.plants[0].berries[0];
+    advance(game, berry.stageEndsAt[stage - 1] - game.elapsed);
+    const before = game.score;
+    let display = { value: before, at: 1000, active: false };
+    assert.equal(pickBerry(game, 1, berry.id), true);
+    assert.equal(game.score, before + 50);
+    const sampled = [display.value];
+    for (let now = 1000; now <= 1400; now += 10) {
+      display = stepScoreDisplay(display, game.score, now);
+      if (sampled.at(-1) !== display.value) sampled.push(display.value);
+    }
+    assert.deepEqual(sampled, [0, 10, 20, 30, 40, 50].map(value => before + value));
+    assert.equal(display.active, false);
+    assert.equal(game.pack.at(-1).stage, stage);
+  }
 });

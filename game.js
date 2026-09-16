@@ -1,5 +1,5 @@
 import { CONFIG, BERRY_NAMES, createGame, startGame, pauseGame, advance, berryStage, pickBerry, shipPack } from './game-core.js';
-import { FIELD, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose, stepScoreDisplay } from './visual-layout.js';
+import { FIELD, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose, stepScoreDisplay } from './visual-layout.js';
 import { createHighScoreStore } from './high-scores.js';
 
 let game = createGame();
@@ -22,14 +22,13 @@ const fallback = ['🌱', '🌱', '🌿', '🌿', '🌳', '🌱', '🌼', '⚪',
 const plantElements = new Map();
 const berryElements = new Map();
 const berryPoints = CONFIG.berryPoints;
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const scoreValue = $('score');
 const scoreGroup = document.querySelector('.score-stat strong');
 let scoreDisplay = { value: game.score, at: performance.now(), active: false };
 function renderScore(now = performance.now(), immediate = false) {
-  const next = stepScoreDisplay(scoreDisplay, game.score, now, immediate || reducedMotion.matches);
+  const next = stepScoreDisplay(scoreDisplay, game.score, now, immediate);
   if (next.value !== scoreDisplay.value) scoreValue.textContent = next.value;
-  if (next.active !== scoreDisplay.active) scoreGroup.classList.toggle('is-counting', next.active);
+  scoreGroup.classList.toggle('is-counting', next.active);
   scoreDisplay = next;
 }
 const rainCurtain = document.querySelector('.rain-curtain');
@@ -38,15 +37,13 @@ const rainParticles = Array.from(document.querySelectorAll('.rain-drop'), elemen
 let rainWidth = 0;
 let rainHeight = 0;
 let rainWasActive = false;
-let rainWasReduced = reducedMotion.matches;
 
 // Visual randomness never consumes either of the game's saved random streams.
 function seedRainParticle(particle, now, initial) {
-  const gentle = reducedMotion.matches;
-  particle.duration = gentle ? 2.6 + Math.random() * 1.4 : 1.1 + Math.random() * 1.25;
+  particle.duration = 1.1 + Math.random() * 1.25;
   particle.start = initial
     ? now - Math.random() * particle.duration
-    : now + .04 + Math.random() * (gentle ? .65 : .4);
+    : now + .04 + Math.random() * .4;
   particle.x = .025 + Math.random() * .91;
   particle.drift = .025 + Math.random() * .065;
   particle.size = 9 + Math.random() * 3;
@@ -67,18 +64,12 @@ function renderRain() {
   const rainAlpha = String(fadeProgress * fadeProgress * (3 - 2 * fadeProgress));
   rainCurtain.style.opacity = rainAlpha;
   rainFarm.style.setProperty('--rain-alpha', rainAlpha);
-  const gentle = reducedMotion.matches;
-  const initialize = !rainWasActive || rainWasReduced !== gentle;
+  const initialize = !rainWasActive;
   if (!initialize && game.status !== 'running') return;
   rainWasActive = true;
-  rainWasReduced = gentle;
   const distance = rainHeight + 64;
   for (let index = 0; index < rainParticles.length; index++) {
     const particle = rainParticles[index];
-    if (gentle && index % 2 === 1) {
-      particle.element.style.visibility = 'hidden';
-      continue;
-    }
     if (initialize) seedRainParticle(particle, game.elapsed, true);
     if (game.elapsed >= particle.start + particle.duration) {
       seedRainParticle(particle, game.elapsed, false);
@@ -108,7 +99,7 @@ function removeLater(element, milliseconds) {
   }
 }
 function flyToPack(rect, stage, slotIndex) {
-  if (reducedMotion.matches || !rect) return;
+  if (!rect) return;
   const destination = $('pack').children[slotIndex]?.getBoundingClientRect();
   if (!destination) return;
   const appRect = document.querySelector('.app').getBoundingClientRect();
@@ -148,7 +139,6 @@ function flyToPack(rect, stage, slotIndex) {
   removeLater(flight, 950);
 }
 function celebrateDelivery() {
-  if (reducedMotion.matches) return;
   const celebration = document.createElement('div');
   celebration.className = 'celebration';
   celebration.setAttribute('aria-hidden', 'true');
@@ -277,7 +267,7 @@ function buildPlant(plant) {
   const article = document.createElement('article');
   article.className = 'plant';
   article.setAttribute('aria-label', `${plant.id}ばんの株`);
-  const origin = fieldPlantOrigin(plant.id - 1);
+  const origin = anatomy.fieldCrown;
   article.innerHTML = '<div class="plant-scene"><svg class="leaf-stalks" viewBox="0 0 300 360" aria-hidden="true" focusable="false"></svg><svg class="plant-art" viewBox="0 0 300 360" aria-hidden="true" focusable="false"></svg><svg class="fruit-stalks" viewBox="0 0 300 360" aria-hidden="true" focusable="false"></svg><div class="berries"></div></div>';
   const leaves = anatomy.leaves.map(leaf => {
     const element = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -321,7 +311,7 @@ function buildPlant(plant) {
   return view;
 }
 function renderBreeze() {
-  if (game.status !== 'running' || reducedMotion.matches) return;
+  if (game.status !== 'running') return;
   const breeze = sampleBreeze(game.elapsed);
   for (const view of plantElements.values()) for (const leaf of view.leaves) {
     if (leaf.stage > view.stage) continue;

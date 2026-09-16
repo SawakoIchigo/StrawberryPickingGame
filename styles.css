@@ -719,7 +719,7 @@ h2 {
   content:"";
   position:absolute;
   inset:0;
-  border:1.5px solid #32935a;
+  border:2px solid #32935a;
   border-radius:inherit;
   opacity:0;
   pointer-events:none;
@@ -2217,37 +2217,6 @@ summary {
     font-size:12px;
   }
 }
-@media(prefers-reduced-motion:reduce) {
-  *,*:before,*:after {
-    scroll-behavior:auto!important;
-    transition:none!important;
-    animation:none!important;
-  }
-  .ship::before,.ship::after {
-    display:none;
-  }
-  #gameover-dialog[open]::backdrop {
-    animation:none;
-  }
-  .berry.ripe:before {
-    opacity:.6;
-    transform:translate(-50%,-50%);
-    border-color:#ffefad;
-  }
-  .berry.ripe:after {
-    display:none;
-  }
-  .point-popup {
-    opacity:1;
-  }
-  .harvest-flight,.harvest-burst,.celebration i {
-    display:none;
-  }
-  /* JavaScript keeps twenty-four readable droplets with slower falling. */
-  .rain-splash {
-    display:none;
-  }
-}
 
 /* Seven plants share the hexagonal soil; all fruit targets stay disjoint. */
 .berry-slot, .berry { width:30px; height:30px; min-height:30px; }
@@ -2255,9 +2224,5 @@ summary {
 .workbench .life-hearts { display:grid; grid-template-columns:repeat(5,auto); justify-content:space-between; row-gap:1px; }
 .sprite[data-stage="5"], .sprites-ready .sprite[data-stage="5"] { filter:brightness(.78) saturate(1.12) contrast(1.06); }
 
-.score-stat strong { transform-origin:center; transition:transform .16s ease-out; }
+.score-stat strong { transform:none; transform-origin:center; transition:transform .16s ease-out; }
 .score-stat strong.is-counting { transform:scale(1.06); }
-@media(prefers-reduced-motion:reduce) {
-  .score-stat strong { transition:none; }
-  .score-stat strong.is-counting { transform:none; }
-}
