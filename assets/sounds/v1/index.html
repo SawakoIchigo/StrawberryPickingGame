@@ -28,6 +28,11 @@
     h2 span { display:grid; place-items:center; border-radius:50%; width:30px; height:30px; font-size:.8rem; background:#e5efdf; color:#376944; }
     .choices { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     article { border:1px solid #ead6c7; background:#fffefa; border-radius:18px; padding:20px; box-shadow:0 3px 0 #efdfce; }
+    .chosen { border:2px solid #45835b; background:#f8fff4; }
+    .adopted { display:inline-block; margin-left:8px; padding:2px 8px; border-radius:8px; color:#fff; background:#376944; letter-spacing:0; }
+    details { margin-top:16px; font-size:.9rem; color:#705f52; }
+    summary { cursor:pointer; padding:12px 0; }
+    details .actions { padding:8px 0; }
     .tag { color:#9b354c; font-size:.78rem; font-weight:800; letter-spacing:.06em; }
     h3 { margin:8px 0; font-size:1.1rem; }
     article p { font-size:.9rem; color:#705f52; line-height:1.7; min-height:3.4em; margin:0 0 18px; }
@@ -45,7 +50,7 @@
   <header>
     <div class="eyebrow">さわこいちご · SOUND SAMPLES</div>
     <h1>いちごの音えらび</h1>
-    <p class="intro">つむ、ととのう、おとどけする。<br>ゲームの3つの場面に、2種類ずつ音をつくりました。<br>好きなボタンを押して、聴きくらべてみてください。</p>
+    <p class="intro">つむ、ととのう、おとどけする。<br>収穫と満杯の音は決まりました。<br>おとどけの音は、最後のお祝いをもっと華やかに。新しい2案を聴きくらべてみてください。</p>
   </header>
   <div class="controls">
     <div class="volume"><label for="volume">音量</label><input id="volume" type="range" min="0" max="100" value="55"><output id="volume-value" for="volume">55%</output></div>
@@ -55,7 +60,7 @@
   <section aria-labelledby="harvest-heading">
     <h2 id="harvest-heading"><span>01</span>いちごを収穫</h2>
     <div class="choices">
-      <article><div class="tag">収穫 A · 0.18秒</div><h3>まるいしずく</h3><p>ふっくら弾んで、すっと落ち着く水滴の音。何度もつむ場面に。</p><div class="actions"><button class="play" type="button" data-sound="harvest-a" aria-label="収穫A まるいしずくを再生" aria-pressed="false">▶ きく</button><a href="harvest-a.wav" download>WAVを保存</a></div></article>
+      <article class="chosen"><div class="tag">収穫 A · 0.18秒<span class="adopted">採用</span></div><h3>まるいしずく</h3><p>ふっくら弾んで、すっと落ち着く水滴の音。何度もつむ場面に。</p><div class="actions"><button class="play" type="button" data-sound="harvest-a" aria-label="収穫A まるいしずくを再生" aria-pressed="false">▶ きく</button><a href="harvest-a.wav" download>WAVを保存</a></div></article>
       <article><div class="tag">収穫 B · 0.22秒</div><h3>木の実はじける</h3><p>小さな木の実を弾くような、明るく軽い音。短い余韻を添えて。</p><div class="actions"><button class="play" type="button" data-sound="harvest-b" aria-label="収穫B 木の実はじけるを再生" aria-pressed="false">▶ きく</button><a href="harvest-b.wav" download>WAVを保存</a></div></article>
     </div>
   </section>
@@ -63,17 +68,18 @@
     <h2 id="full-heading"><span>02</span>パックがいっぱい</h2>
     <div class="choices">
       <article><div class="tag">満杯 A · 0.64秒</div><h3>みっつのベル</h3><p>3つの音が階段をのぼる、明るいベル。「そろったよ」の合図に。</p><div class="actions"><button class="play" type="button" data-sound="full-a" aria-label="満杯A みっつのベルを再生" aria-pressed="false">▶ きく</button><a href="full-a.wav" download>WAVを保存</a></div></article>
-      <article><div class="tag">満杯 B · 0.64秒</div><h3>きらめく合図</h3><p>軽やかに2音、ひと呼吸おいてもう1音。澄んだ音の小さなきらめき。</p><div class="actions"><button class="play" type="button" data-sound="full-b" aria-label="満杯B きらめく合図を再生" aria-pressed="false">▶ きく</button><a href="full-b.wav" download>WAVを保存</a></div></article>
+      <article class="chosen"><div class="tag">満杯 B · 0.64秒<span class="adopted">採用</span></div><h3>きらめく合図</h3><p>軽やかに2音、ひと呼吸おいてもう1音。澄んだ音の小さなきらめき。</p><div class="actions"><button class="play" type="button" data-sound="full-b" aria-label="満杯B きらめく合図を再生" aria-pressed="false">▶ きく</button><a href="full-b.wav" download>WAVを保存</a></div></article>
     </div>
   </section>
   <section aria-labelledby="ship-heading">
     <h2 id="ship-heading"><span>03</span>パックをおとどけ</h2>
     <div class="choices">
-      <article><div class="tag">出荷 A · 1.16秒</div><h3>おとどけファンファーレ</h3><p>4つの音が上がって、最後はふわり。「できた！」を祝う短いメロディー。</p><div class="actions"><button class="play" type="button" data-sound="ship-a" aria-label="出荷A おとどけファンファーレを再生" aria-pressed="false">▶ きく</button><a href="ship-a.wav" download>WAVを保存</a></div></article>
-      <article><div class="tag">出荷 B · 1.22秒</div><h3>あたたかなごほうび</h3><p>やわらかな和音の上を、音の粒が跳ねます。ほっとするお祝いの音。</p><div class="actions"><button class="play" type="button" data-sound="ship-b" aria-label="出荷B あたたかなごほうびを再生" aria-pressed="false">▶ きく</button><a href="ship-b.wav" download>WAVを保存</a></div></article>
+      <article><div class="tag">出荷 新A · 1.98秒</div><h3>できた！大きな花まる</h3><p>弾む音が駆け上がり、厚みのある和音で「できた！」。最後にきらりと光る余韻。</p><div class="actions"><button class="play" type="button" data-sound="ship-finale-a" aria-label="出荷新A できた！大きな花まるを再生" aria-pressed="false">▶ きく</button><a href="ship-finale-a.wav" download>WAVを保存</a></div></article>
+      <article><div class="tag">出荷 新B · 2.16秒</div><h3>きらめくフィナーレ</h3><p>音の粒が次々にのぼり、祝福の和音が大きく開きます。きらめきがやさしく降りるおしまい。</p><div class="actions"><button class="play" type="button" data-sound="ship-finale-b" aria-label="出荷新B きらめくフィナーレを再生" aria-pressed="false">▶ きく</button><a href="ship-finale-b.wav" download>WAVを保存</a></div></article>
     </div>
   </section>
-  <footer>人の声を使わずにつくった、ゲーム用の効果音です。<br>ここは試聴ページです。ゲームへの組み込みは、音を選んだあとに。<br><a href="../../../index.html">いちごゲームへ</a></footer>
+  <details><summary>前のおとどけ音とくらべる</summary><p>前の2案も保存して聴けます。</p><div class="actions"><a href="ship-a.wav" download>旧A おとどけファンファーレを保存</a><a href="ship-b.wav" download>旧B あたたかなごほうびを保存</a></div></details>
+  <footer>人の声を使わずにつくった、ゲーム用の効果音です。<br>ここは試聴ページです。ゲームへの組み込みは、おとどけの音が決まったあとに。<br><a href="../../../index.html">いちごゲームへ</a></footer>
 </main>
 <script>
   const volume = document.getElementById('volume');

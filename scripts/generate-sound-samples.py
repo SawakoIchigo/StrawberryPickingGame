@@ -1,4 +1,4 @@
-"""Rebuild the six original, voice-free sound candidates using only Python 3.11.
+"""Rebuild the original six sounds and two finales using only Python 3.11.
 
 Run from any directory: python scripts/generate-sound-samples.py
 All oscillators, envelopes and echoes are deterministic; no recorded audio.
@@ -108,6 +108,40 @@ def candidates():
     echo(ship_b, .072, .11)
     yield 'ship-a', ship_a, .135
     yield 'ship-b', ship_b, .135
+
+    # A: a clear rising call, a brief dominant pickup, then a full tonic landing.
+    # Stagger the chord attacks slightly so it blooms rather than clicks.
+    finale_a = [0.0] * round(1.98 * RATE)
+    fanfare = [(1, 1, 1), (2, .28, .72), (3, .12, .48), (4, .035, .3)]
+    for start, midi, gain in [(0, 72, .68), (.15, 76, .73), (.30, 79, .8),
+                              (.46, 79, .42), (.515, 83, .48), (.57, 86, .56)]:
+        mix(finale_a, voice(.42, note(midi), fanfare, .145, .008), start, gain)
+    for start, midi, gain in [(.67, 48, .45), (.676, 60, .4), (.688, 64, .36),
+                              (.700, 67, .38), (.712, 72, .48), (.724, 84, .60)]:
+        mix(finale_a, voice(1.20, note(midi), WARM if midi < 72 else BELL,
+                            .30 if midi < 72 else .24, .014), start, gain)
+    for start, midi, gain in [(1.02, 88, .19), (1.13, 91, .13), (1.27, 96, .065)]:
+        mix(finale_a, voice(.65, note(midi), CHIME, .14, .006), start, gain)
+    echo(finale_a, .076, .10)
+    # Gently round coincident chord peaks before matching the audition volume.
+    yield 'ship-finale-a', [math.tanh(value * 1.1) / 1.1 for value in finale_a], .135
+
+    # B: overlapping, accelerating mallet particles open into a rolled chord.
+    # The low C arrives with the chord, making the finish distinct from the run.
+    finale_b = [0.0] * round(2.16 * RATE)
+    for start, midi, gain in [(0, 67, .48), (.105, 72, .50), (.21, 76, .52),
+                              (.31, 79, .55), (.405, 83, .49), (.49, 86, .48),
+                              (.565, 91, .35), (.63, 86, .29)]:
+        mix(finale_b, voice(.47, note(midi), WOOD, .13, .006), start, gain)
+    for start, midi, gain in [(.78, 48, .43), (.79, 60, .39), (.815, 67, .37),
+                              (.845, 72, .43), (.88, 76, .42), (.92, 79, .41),
+                              (.96, 84, .53)]:
+        mix(finale_b, voice(1.16, note(midi), WARM if midi < 72 else BELL,
+                            .34 if midi < 72 else .28, .018), start, gain)
+    for start, midi, gain in [(1.24, 91, .14), (1.38, 88, .11), (1.52, 84, .09)]:
+        mix(finale_b, voice(.6, note(midi), CHIME, .14, .008), start, gain)
+    echo(finale_b, .084, .12)
+    yield 'ship-finale-b', [math.tanh(value * 1.1) / 1.1 for value in finale_b], .135
 
 
 def main():
