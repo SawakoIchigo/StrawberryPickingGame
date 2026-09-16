@@ -9,7 +9,6 @@ const sound = createGameAudio();
 let visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
 let previousFrame = null;
 let renderAt = -Infinity;
-let restartPreviousStatus = 'ready';
 const $ = id => document.getElementById(id);
 const lifeHearts = Array.from({ length: CONFIG.initialLives }, () => {
   const heart = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -214,8 +213,9 @@ function advanceAndShow(seconds) {
 }
 function fitFarm() {
   const viewport = document.querySelector('.farm-viewport');
-  const scale = Math.min(viewport.clientWidth / FIELD.width, viewport.clientHeight / FIELD.height);
+  const scale = Math.min(viewport.clientWidth / FIELD.renderWidth, viewport.clientHeight / FIELD.height);
   viewport.style.setProperty('--farm-scale', scale);
+  viewport.style.setProperty('--pot-rotation', `${FIELD.potRotation}deg`);
   rainWidth = viewport.clientWidth;
   rainHeight = viewport.clientHeight;
   $('farm').style.transform = `translate(-50%, -50%) scale(${scale})`;
@@ -229,7 +229,7 @@ function syncTime() {
   previousFrame = now;
 }
 function begin() {
-  if (document.hidden || $('audio-dialog').open || (game.status !== 'ready' && game.status !== 'paused')) return false;
+  if (document.hidden || (game.status !== 'ready' && game.status !== 'paused')) return false;
   const starting = game.status === 'ready';
   sound.unlock();
   if (game.status === 'ready' && !hasShownHarvestTip) {
@@ -250,7 +250,7 @@ function begin() {
 function pause() {
   syncTime();
   pauseGame(game);
-  if (game.status === 'paused' && !$('restart-dialog').open && !$('pause-dialog').open) $('pause-dialog').showModal();
+  if (game.status === 'paused' && !$('pause-dialog').open) $('pause-dialog').showModal();
   render();
 }
 function harvest(plantId, berryId) {
@@ -430,7 +430,7 @@ function render() {
   $('ship').setAttribute('aria-label', delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ あつめよう`);
   if (game.status === 'gameover' && !$('gameover-dialog').open) {
     clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
-    for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog', 'audio-dialog']) if ($(id).open) $(id).close();
+    for (const id of ['welcome', 'pause-dialog', 'guide-dialog']) if ($(id).open) $(id).close();
     $('gameover-result').textContent = `${game.shipments}パック おとどけ ／ ${game.score}てん`;
     const record = highScores.record(game, game.score);
     $('new-record').hidden = !record.newRecord;
@@ -479,27 +479,12 @@ function closeGuide() {
 }
 $('close-guide').addEventListener('click', closeGuide);
 $('guide-dialog').addEventListener('cancel', event => { event.preventDefault(); closeGuide(); });
-$('restart').addEventListener('click', () => {
-  syncTime();
-  if (game.status === 'gameover') { render(); return; }
-  restartPreviousStatus = game.status;
-  pauseGame(game);
-  $('restart-dialog').showModal();
-  render();
-});
-function cancelRestart() {
-  $('restart-dialog').close();
-  if (restartPreviousStatus === 'running') begin();
-  $('restart').focus({ preventScroll: true });
-}
-$('cancel-restart').addEventListener('click', cancelRestart);
-$('restart-dialog').addEventListener('cancel', event => { event.preventDefault(); cancelRestart(); });
 function resetGame() {
   sound.stop();
   deliverySuccessUntil = 0;
-  for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog', 'gameover-dialog', 'audio-dialog']) if ($(id).open) $(id).close();
+  for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'gameover-dialog']) if ($(id).open) $(id).close();
   clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
-  hasShownHarvestTip = false; guideWasRunning = false; restartPreviousStatus = 'ready';
+  hasShownHarvestTip = false; guideWasRunning = false;
   for (const [element, timer] of pointEffects) { clearTimeout(timer); element.remove(); }
   pointEffects.clear();
   for (const [element, timer] of effectTimers) { clearTimeout(timer); element.remove(); }
@@ -513,7 +498,6 @@ function resetGame() {
   render();
   $('welcome').showModal();
 }
-$('confirm-restart').addEventListener('click', resetGame);
 $('play-again').addEventListener('click', () => { resetGame(); begin(); });
 for (const id of ['welcome', 'pause-dialog', 'gameover-dialog']) $(id).addEventListener('cancel', event => event.preventDefault());
 document.addEventListener('visibilitychange', () => {
@@ -527,30 +511,6 @@ window.addEventListener('pagehide', () => {
   sound.stop();
 });
 
-let audioOpenedWhileRunning = false;
-let audioOpener;
-for (const button of document.querySelectorAll('[data-open-audio]')) button.addEventListener('click', () => {
-  syncTime();
-  audioOpener = button;
-  audioOpenedWhileRunning = game.status === 'running';
-  pauseGame(game);
-  sound.stop();
-  render();
-  $('audio-dialog').showModal();
-});
-function closeAudio() {
-  $('audio-dialog').close();
-  if (audioOpenedWhileRunning && game.status === 'paused' && !$('pause-dialog').open) $('pause-dialog').showModal();
-  else audioOpener?.focus({ preventScroll: true });
-  audioOpenedWhileRunning = false;
-}
-$('close-audio').addEventListener('click', closeAudio);
-$('audio-dialog').addEventListener('cancel', event => { event.preventDefault(); closeAudio(); });
-for (const kind of ['sfx', 'bgm']) $(`${kind}-volume`).addEventListener('input', event => {
-  const value = Number(event.target.value);
-  $(`${kind}-volume-value`).textContent = `${value}%`;
-  sound.setVolume(kind, value / 100);
-});
 function frame(now) {
   if (previousFrame !== null) advanceAndShow((now - previousFrame) / 1000);
   previousFrame = now;

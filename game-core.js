@@ -60,13 +60,25 @@ function addPlant(game, stage) {
   game.plants.push(plant);
   return plant;
 }
+function addBerry(game, plant, slot, initialStage = 0) {
+  let boundary = game.elapsed;
+  const stageEndsAt = CONFIG.berryStageSeconds.map(duration => (boundary += growthDuration(game, duration)));
+  // Backdate the entire saved schedule, leaving a full current-stage duration.
+  // Later berries use stage zero and therefore retain the normal birth rules.
+  const past = initialStage === 0 ? 0 : stageEndsAt[initialStage - 1] - game.elapsed;
+  const berry = { id: game.nextBerryId++, bornAt: game.elapsed - past,
+    stageEndsAt: stageEndsAt.map(at => at - past), countedRotten: false, slot, rainBoostedStages: [] };
+  waterBerry(game, berry);
+  plant.berries.push(berry);
+}
 export function createGame(seed = Math.floor(Math.random() * 0x100000000)) {
   const game = { status: 'ready', elapsed: 0, shipments: 0, missed: 0, score: 0, lives: CONFIG.initialLives, pack: [], plants: [], nextPlantId: 1, nextBerryId: 1, rngState: seed >>> 0,
     weatherRngState: (seed ^ 0x9e3779b9) >>> 0,
     rain: { active: false, startedAt: null, endsAt: null, nextStartsAt: null, bonusSeconds: 0 } };
   game.rain.nextStartsAt = weatherDuration(game, CONFIG.rainIntervalSeconds);
-  addPlant(game, 3);
-  processEvents(game);
+  const plant = addPlant(game, 4);
+  for (let stage = 0; stage <= 4; stage++) addBerry(game, plant, stage, stage);
+  plant.nextSpawnAt = game.elapsed + CONFIG.spawnIntervalSeconds[plant.stage];
   return game;
 }
 export function startGame(game) { if (game.status === 'ready' || game.status === 'paused') game.status = 'running'; }
@@ -101,11 +113,7 @@ function processEvents(game, events = []) {
       if (plant.berries.length < CONFIG.plantCapacity[plant.stage]) {
         const slot = Array.from({ length: CONFIG.plantCapacity[plant.stage] }, (_, i) => i)
           .find(i => !plant.berries.some(berry => berry.slot === i));
-        let boundary = game.elapsed;
-        const stageEndsAt = CONFIG.berryStageSeconds.map(duration => (boundary += growthDuration(game, duration)));
-        const berry = { id: game.nextBerryId++, bornAt: game.elapsed, stageEndsAt, countedRotten: false, slot, rainBoostedStages: [] };
-        waterBerry(game, berry);
-        plant.berries.push(berry);
+        addBerry(game, plant, slot);
       }
       plant.nextSpawnAt = game.elapsed + CONFIG.spawnIntervalSeconds[plant.stage];
     }

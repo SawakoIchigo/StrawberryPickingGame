@@ -35,16 +35,70 @@ function rotEvent(plantId, berry) {
   return { type: 'rot', plantId, berryId: berry.id, slot: berry.slot, points: -500, at: berry.stageEndsAt[5] };
 }
 
-test('initial farm starts with one stage-three plant, zero score and waits for start', () => {
+test('initial farm has a stage-four plant and exactly one bud, flower, white, pink and red berry, waiting for start', () => {
   const game = createGame();
   assert.equal(game.plants.length, 1);
-  assert.equal(game.plants[0].stage, 3);
+  assert.equal(game.plants[0].stage, 4);
   assert.equal(game.score, 0);
   assert.equal(game.lives, 10);
   assert.equal(berryStage(game.plants[0].berries[0], 0), 0);
+  assert.deepEqual(game.plants[0].berries.map(berry => berryStage(berry, 0)), [0, 1, 2, 3, 4]);
+  assert.deepEqual(game.plants[0].berries.map(berry => berry.slot), [0, 1, 2, 3, 4]);
+  assert.equal(new Set(game.plants[0].berries.map(berry => berry.id)).size, 5);
+  assert.equal(game.plants[0].berries.length, CONFIG.plantCapacity[4]);
+  assert.equal(game.plants[0].nextSpawnAt, CONFIG.spawnIntervalSeconds[4]);
+  assert.equal(game.pack.length, 0);
   const saved = structuredClone(game);
   assert.deepEqual(advance(game, 100), []);
   assert.deepEqual(game, saved);
+});
+
+test('each initial stage has its full saved duration and both ripe berries are immediately harvestable after start', () => {
+  for (const seed of [0, 1, 42, 123456789, 0xffffffff]) {
+    const game = createGame(seed);
+    const plant = game.plants[0];
+    for (const [stage, berry] of plant.berries.entries()) {
+      assert.equal(berryStage(berry, 0), stage);
+      assert.equal(berry.stageEndsAt[stage - 1] ?? berry.bornAt, 0);
+      inRange(berry.stageEndsAt[stage], CONFIG.berryStageSeconds[stage]);
+      for (let boundary = 0; boundary < 7; boundary++) {
+        inRange(berry.stageEndsAt[boundary] - (berry.stageEndsAt[boundary - 1] ?? berry.bornAt), CONFIG.berryStageSeconds[boundary]);
+      }
+      assert.equal(berry.countedRotten, false);
+      assert.deepEqual(berry.rainBoostedStages, []);
+    }
+    const [bud, flower, white, pink, red] = plant.berries;
+    assert.equal(pickBerry(game, 1, red.id), false);
+    startGame(game);
+    for (const berry of [bud, flower, white]) assert.equal(pickBerry(game, 1, berry.id), false);
+    assert.equal(pickBerry(game, 1, red.id), true);
+    assert.equal(game.score, 150);
+    assert.equal(pickBerry(game, 1, pink.id), true);
+    assert.equal(game.score, 200);
+    assert.deepEqual(game.pack.map(berry => berry.stage), [4, 3]);
+    assert.equal(game.lives, 10);
+    assert.equal(game.missed, 0);
+    advance(game, 8);
+    assert.equal(plant.berries.length, 5);
+    assert.deepEqual(plant.berries.slice(-2).map(berry => [berry.slot, berry.bornAt]), [[3, 4], [4, 8]]);
+    assert.equal(new Set(plant.berries.map(berry => berry.id)).size, 5);
+  }
+});
+
+test('all five initial berries naturally expire once and a new game restores the initial composition', () => {
+  const game = runningWithSpareLives(42);
+  game.rain.nextStartsAt = Infinity;
+  const originals = [...game.plants[0].berries];
+  const ids = new Set(originals.map(berry => berry.id));
+  const at = Math.max(...originals.map(berry => berry.stageEndsAt[6]));
+  const events = advanceTo(game, at).filter(event => ids.has(event.berryId));
+  assert.equal(events.length, 5);
+  assert.equal(new Set(events.map(event => event.berryId)).size, 5);
+  for (const berry of originals) assert.deepEqual(events.find(event => event.berryId === berry.id), rotEvent(1, berry));
+  assert.ok(game.plants[0].berries.every(berry => !ids.has(berry.id)));
+  assert.ok(advance(game, 10).every(event => !ids.has(event.berryId)));
+  const restarted = createGame(42);
+  assert.deepEqual(restarted.plants[0].berries.map(berry => berryStage(berry, 0)), [0, 1, 2, 3, 4]);
 });
 
 test('each plant transition uses saved 13–17 seconds and spawns its neighbor at stage five', () => {
@@ -62,8 +116,6 @@ test('each plant transition uses saved 13–17 seconds and spawns its neighbor a
     assert.equal(plant.stage, expectedStage);
     assert.equal(plant.stageStartedAt, at);
   }
-  grow(initial, 4);
-  assert.equal(game.plants.length, 1);
   grow(initial, 5);
   assert.equal(initial.nextGrowthAt, Infinity);
   assert.deepEqual(game.plants.map(plant => plant.stage), [5, 1]);
@@ -194,7 +246,6 @@ test('picked berries never produce a later rot notification', () => {
 
 test('rot notifications belong only to their advance call and preserve source slots and times', () => {
   const game = running();
-  advance(game, 13);
   const berries = [...game.plants[0].berries].sort((a, b) => a.stageEndsAt[5] - b.stageEndsAt[5]);
   const first = advanceTo(game, berries[0].stageEndsAt[5]);
   const savedFirst = structuredClone(first);
@@ -294,10 +345,17 @@ test('large random updates match small steps including RNG, schedules, score and
 });
 
 test('bud spawn intervals stay fixed while individual growth times vary', () => {
-  const game = running();
-  const plant = game.plants[0];
+  const game = runningWithSpareLives();
+  const initial = game.plants[0];
+  assert.equal(initial.nextSpawnAt, 4);
+  advanceTo(game, initial.nextGrowthAt);
+  const plant = game.plants[1];
+  advanceTo(game, plant.nextGrowthAt);
+  advanceTo(game, plant.nextGrowthAt);
+  assert.equal(plant.stage, 3);
+  const birth = plant.stageStartedAt;
   advance(game, 12);
-  assert.deepEqual(plant.berries.map(berry => berry.bornAt), [0, 6, 12]);
+  assert.deepEqual(plant.berries.map(berry => berry.bornAt), [birth, birth + 6, birth + 12]);
   for (const stage of [4, 5]) {
     advanceTo(game, plant.nextGrowthAt);
     assert.equal(plant.stage, stage);
@@ -318,8 +376,7 @@ test('invalid deltas and nonexistent IDs cannot change the game or consume rando
 
 test('creating a new game resets points earned in the previous game', () => {
   const game = running();
-  const berry = game.plants[0].berries[0];
-  advanceTo(game, berry.stageEndsAt[3]);
+  const berry = game.plants[0].berries[4];
   assert.equal(pickBerry(game, 1, berry.id), true);
   assert.equal(game.score, 150);
   const restarted = createGame();

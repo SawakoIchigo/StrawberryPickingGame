@@ -1,11 +1,4 @@
 @charset "UTF-8";
-.audio-settings-link { display:block; margin:10px auto 0; padding:6px 12px; min-height:32px; font-size:12px; }
-.audio-volume { display:grid; grid-template-columns:1fr auto; gap:8px; margin:18px 0; text-align:left; }
-.audio-volume label { font-weight:700; }
-.audio-volume output { font-variant-numeric:tabular-nums; }
-.audio-volume input { grid-column:1 / -1; width:100%; min-height:32px; accent-color:#dc4658; }
-#audio-dialog { max-width:min(360px,calc(100vw - 28px)); }
-#sound-settings { margin-left:auto; white-space:nowrap; }
 :root {
   font-family:"Hiragino Maru Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
   color:#335344;
@@ -585,7 +578,7 @@ h1>span {
   height:360px;
   left:50%;
   top:50%;
-  transform:translate(-50%,-50%) scale(var(--farm-scale,1));
+  transform:translate(-50%,-50%) scale(var(--farm-scale,1)) rotate(var(--pot-rotation,20deg));
   transform-origin:center;
   filter:saturate(.82) brightness(1.15);
 }
@@ -776,27 +769,6 @@ h2 {
   border-width:5px 7px 5px 0;
   border-style:solid;
   border-color:transparent #f3f0dc transparent transparent;
-}
-.farm-footer {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  flex:none;
-  min-height:32px;
-  font-size:10px;
-  color:#8d9276;
-  letter-spacing:.07em;
-}
-.farm-footer button {
-  font-size:10px;
-  min-height:36px;
-  padding:8px 10px;
-  background:transparent;
-  border:0;
-  color:#7d816b;
-}
-.farm-footer>span {
-  padding-left:4px;
 }
 #point-effects {
   position:absolute;
@@ -1414,16 +1386,6 @@ summary {
   .feedback:before {
     display:none;
   }
-  .farm-footer {
-    min-height:26px;
-    line-height:1.3;
-    font-size:8px;
-  }
-  .farm-footer button {
-    min-height:28px;
-    padding:4px 8px;
-    font-size:9px;
-  }
   #harvest-tip {
     font-size:11px;
     top:35%;
@@ -1500,9 +1462,6 @@ summary {
   .friend-note img {
     width:25px;
     height:28px;
-  }
-  .farm-footer>span {
-    font-size:7px;
   }
   .farm-caption {
     height:30px;
@@ -1639,16 +1598,6 @@ summary {
     font-size:8px;
     line-height:1.35;
   }
-  .farm-footer {
-    min-height:24px;
-  }
-  .farm-footer button {
-    min-height:24px;
-    padding:2px 8px;
-  }
-  .farm-footer>span {
-    font-size:7px;
-  }
 }
 /* Small PC windows keep the 9:16 frame, with controls fitted to its width. */
 @media(min-width:760px) and (max-height:567px) {
@@ -1701,11 +1650,8 @@ summary {
     padding:3px;
     gap:2px;
   }
-  .friend-note img,.farm-footer>span {
+  .friend-note img {
     display:none;
-  }
-  .farm-footer {
-    justify-content:flex-end;
   }
   dialog,.welcome-dialog {
     padding:14px 10px;
@@ -1936,6 +1882,8 @@ summary {
   min-width:0;
   font-size:11px;
   line-height:1.4;
+  /* Reserve complete message lines so praise and delivery text cannot resize the field. */
+  min-height:4.2em;
   overflow-wrap:anywhere;
 }
 @media(max-width:359px), (min-width:760px) and (max-height:638.22px) {
@@ -1957,6 +1905,7 @@ summary {
   }
   .workbench .feedback {
     font-size:10px;
+    min-height:5.6em;
   }
 }
 @media(min-width:760px) and (max-height:567px) {
@@ -1991,6 +1940,7 @@ summary {
   }
   .workbench .feedback {
     font-size:9px;
+    min-height:7em;
   }
 }
 @media(max-width:430px), (min-width:760px) and (max-height:767px) {
@@ -2228,5 +2178,10 @@ summary {
 .workbench .life-hearts { display:grid; grid-template-columns:repeat(5,auto); justify-content:space-between; row-gap:1px; }
 .sprite[data-stage="5"], .sprites-ready .sprite[data-stage="5"] { filter:brightness(.78) saturate(1.12) contrast(1.06); }
 
-.score-stat strong { transform:none; transform-origin:center; transition:transform .16s ease-out; }
-.score-stat strong.is-counting { transform:scale(1.06); }
+.topbar { position:relative; z-index:6; }
+.topbar .controls { position:relative; z-index:1; }
+.score-stat strong { display:inline-block; pointer-events:none; transform:none; transform-origin:right top; transition:transform .16s ease-out; }
+.score-stat strong.is-counting { transform:translateY(44px) scale(2.5); text-shadow:0 1px 2px #fff9e9; }
+@media(max-width:359px) {
+  .score-stat strong.is-counting { transform:translate(5px,44px) scale(2.5); }
+}

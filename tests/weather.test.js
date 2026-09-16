@@ -43,7 +43,7 @@ function assertCredit(original, watered, at, bonus) {
 
 test('weather keeps the original growth seed sequence and has an independent saved random stream', () => {
   const initial = createGame(42);
-  assert.equal(initial.rngState, 508781842);
+  assert.equal(initial.rngState, 1635343518, 'one plant and five complete seven-stage schedules consume the growth stream');
   assert.equal(initial.plants[0].nextGrowthAt, 14.009380699135363);
   assert.deepEqual(initial.plants[0].berries[0].stageEndsAt,
     [2.352500181645155, 6.661624974571168, 10.55184203851968, 15.054482826963067,
@@ -91,6 +91,24 @@ test('showers start every 30–60 game seconds, last 5–10 seconds, and keep on
       assert.equal(game.weatherRngState, rng, 'ending rain does not redraw its schedule');
     }
   }
+});
+
+test('the five backdated initial stages receive rain once without changing past boundaries or growth RNG', () => {
+  const game = running();
+  const initial = structuredClone(game.plants[0].berries);
+  const rng = game.rngState;
+  game.rain.nextStartsAt = .5;
+  advanceTo(game, .5);
+  for (const [stage, berry] of game.plants[0].berries.entries()) {
+    assert.equal(berryStage(berry, game.elapsed), stage);
+    assertCredit(initial[stage], berry, .5, game.rain.bonusSeconds);
+    assert.deepEqual(berry.rainBoostedStages, [stage]);
+  }
+  const watered = structuredClone(game.plants[0].berries);
+  advance(game, .001);
+  assert.deepEqual(game.plants[0].berries, watered);
+  assert.equal(game.rngState, rng);
+  assert.equal(game.score, 0);
 });
 
 test('rain credits each of the seven current stages once and preserves past and later stage durations', () => {

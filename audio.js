@@ -4,7 +4,7 @@ export const AUDIO_FILES = Object.freeze({
   harvest3: '苺収穫_ランダム用003.mp3', harvest4: '苺収穫_ランダム用004.mp3',
   full: '苺出荷可能.mp3', ship1: 'クラッカー_ランダム用001.mp3', ship2: 'クラッカー_ランダム用002.mp3',
   rot: '苺腐った時.mp3', start: 'ゲーム開始.mp3', end: 'ゲーム終了.mp3',
-  rain: 'BGM_雨が降る.mp3',
+  farm: 'BGM_農場.mp3', rain: 'BGM_雨が降る.mp3',
 });
 
 export function createGameAudio({
@@ -13,7 +13,9 @@ export function createGameAudio({
 } = {}) {
   let context, effectsGain, musicGain;
   let status = 'ready', raining = false, unlocked = false;
-  let epoch = 0, musicEpoch = 0, musicPending = false, music = null, musicFailed = false;
+  let epoch = 0;
+  const musicTracks = ['farm', 'rain'].map(name => ({ name, epoch: 0, pending: false, source: null, failed: false, retiring: false, fadeIn: false, gain: null }));
+  const rainFadeSeconds = .8;
   let unlockAttempt = 0;
   const bags = { harvest: { names: ['harvest1', 'harvest2', 'harvest3', 'harvest4'], remaining: [], last: null },
     ship: { names: ['ship1', 'ship2'], remaining: [], last: null } };
@@ -27,16 +29,22 @@ export function createGameAudio({
     voice.source?.disconnect();
     voices.delete(voice);
   }
-  function stopMusic() {
-    musicEpoch++;
-    musicPending = false;
-    if (music) { try { music.stop(); } catch { /* Already stopped. */ } music.disconnect(); music = null; }
+  function stopMusic(track) {
+    track.epoch++;
+    track.pending = false;
+    track.retiring = false;
+    if (track.source) {
+      const source = track.source;
+      track.source = null;
+      try { source.stop(); } catch { /* Already stopped. */ }
+      source.disconnect();
+    }
   }
   function stop() {
     unlockAttempt++;
     epoch++;
     for (const voice of voices) dispose(voice);
-    stopMusic();
+    for (const track of musicTracks) stopMusic(track);
   }
   function buffer(name) {
     if (!buffers.has(name)) {
@@ -48,25 +56,52 @@ export function createGameAudio({
     }
     return buffers.get(name);
   }
-  function wantsMusic() { return unlocked && status === 'running' && raining && volumes.bgm > 0; }
+  function wantsMusic(track) { return unlocked && status === 'running' && volumes.bgm > 0 && (track.name === 'farm' || raining); }
   function syncMusic() {
-    if (!wantsMusic()) { if (music || musicPending) stopMusic(); return; }
-    if (music || musicPending || musicFailed) return;
-    const ticket = ++musicEpoch;
-    musicPending = true;
-    buffer('rain').then(decoded => {
-      if (ticket !== musicEpoch) return;
-      musicPending = false;
-      if (!decoded) { musicFailed = true; return; }
-      if (!wantsMusic()) return;
-      try {
-        music = context.createBufferSource();
-        music.buffer = decoded;
-        music.loop = true;
-        music.connect(musicGain);
-        music.start();
-      } catch { stopMusic(); }
-    });
+    for (const track of musicTracks) {
+      if (!wantsMusic(track)) {
+        if (track.name === 'rain' && track.source && unlocked && status === 'running' && volumes.bgm > 0) {
+          if (!track.retiring) {
+            track.retiring = true;
+            const now = context.currentTime;
+            track.gain.gain.cancelAndHoldAtTime(now);
+            track.gain.gain.linearRampToValueAtTime(0, now + rainFadeSeconds);
+            track.source.stop(now + rainFadeSeconds);
+          }
+        } else if (track.source || track.pending) stopMusic(track);
+        continue;
+      }
+      // A scheduled stop cannot be unscheduled. Replace a fading-out rain loop
+      // only after stopping it immediately, keeping at most one rain source.
+      if (track.retiring) stopMusic(track);
+      if (track.source || track.pending || track.failed) continue;
+      const ticket = ++track.epoch;
+      track.pending = true;
+      buffer(track.name).then(decoded => {
+        if (ticket !== track.epoch) return;
+        track.pending = false;
+        if (!decoded) { track.failed = true; return; }
+        if (!wantsMusic(track)) return;
+        try {
+          track.source = context.createBufferSource();
+          track.source.buffer = decoded;
+          track.source.loop = true;
+          if (track.gain) {
+            const now = context.currentTime;
+            track.gain.gain.cancelScheduledValues(now);
+            track.gain.gain.setValueAtTime(track.fadeIn ? 0 : 1, now);
+            if (track.fadeIn) track.gain.gain.linearRampToValueAtTime(1, now + rainFadeSeconds);
+          }
+          track.source.connect(track.gain ?? musicGain);
+          const source = track.source;
+          source.onended = () => {
+            source.disconnect();
+            if (track.source === source) { track.source = null; track.retiring = false; }
+          };
+          track.source.start();
+        } catch { stopMusic(track); track.failed = true; }
+      });
+    }
   }
   function unlock() {
     const attempt = ++unlockAttempt;
@@ -76,6 +111,9 @@ export function createGameAudio({
         effectsGain = context.createGain(); musicGain = context.createGain();
         effectsGain.gain.value = volumes.sfx; musicGain.gain.value = volumes.bgm;
         effectsGain.connect(context.destination); musicGain.connect(context.destination);
+        const rainTrack = musicTracks[1];
+        rainTrack.gain = context.createGain();
+        rainTrack.gain.connect(musicGain);
       }
       // resume is called synchronously from the user's gesture, before loading.
       const resumed = context.resume();
@@ -87,7 +125,7 @@ export function createGameAudio({
     } catch { unlocked = false; }
   }
   function play(name) {
-    if (!unlocked || !AUDIO_FILES[name] || name === 'rain' || volumes.sfx === 0) return;
+    if (!unlocked || !AUDIO_FILES[name] || name === 'rain' || name === 'farm' || volumes.sfx === 0) return;
     if (status !== 'running' && !(name === 'end' && status === 'gameover')) return;
     while (voices.size >= limit) dispose(voices.values().next().value);
     const voice = { epoch, cancelled: false, source: null };
@@ -104,6 +142,7 @@ export function createGameAudio({
     });
   }
   function setState(nextStatus, rain) {
+    if (status !== nextStatus || raining !== rain) musicTracks[1].fadeIn = status === 'running' && nextStatus === 'running' && !raining && rain;
     if (status !== nextStatus && nextStatus !== 'running') stop();
     status = nextStatus; raining = rain;
     syncMusic();

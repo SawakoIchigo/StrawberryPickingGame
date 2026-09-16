@@ -2,7 +2,7 @@
 export const SCENE = Object.freeze({ width: 300, height: 330, minimumWidth: 250, hitSize: 48 });
 // minimumScale is the supported 320×568-and-larger phone baseline for tests;
 // the UI may scale further on unusually small screens instead of clipping.
-export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 30, minimumScale: .8, leafScale: .22, leafSize: 1.35 });
+export const FIELD = Object.freeze({ width: 300, height: 360, renderWidth: 350, potRotation: 20, hitSize: 30, minimumScale: .8, leafScale: .22, leafSize: 1.35 });
 export function fieldPlantOrigin(index, field) {
   const position = field ? field.plantOrder[index] : index;
   return [{ x: 150, y: 200 }, { x: 150, y: 100 }, { x: 225, y: 150 }, { x: 225, y: 250 }, { x: 150, y: 300 }, { x: 75, y: 250 }, { x: 75, y: 150 }][position];
@@ -17,8 +17,12 @@ export function createPlantOrder(seed) {
   }
   return Object.freeze(order);
 }
-// Matches the six soil vertices in the planter SVG.
-export const SOIL_HEX = Object.freeze([[150, 12], [290, 88], [286, 270], [148, 338], [10, 266], [14, 86]].map(Object.freeze));
+// Match the SVG soil after rotating only the planter around its center.
+export const SOIL_HEX = Object.freeze([[150, 12], [290, 88], [286, 270], [148, 338], [10, 266], [14, 86]].map(([x, y]) => {
+  const angle = FIELD.potRotation * Math.PI / 180;
+  return Object.freeze([150 + (x - 150) * Math.cos(angle) - (y - 180) * Math.sin(angle),
+    180 + (x - 150) * Math.sin(angle) + (y - 180) * Math.cos(angle)]);
+}));
 export function insideSoil(x, y) {
   return SOIL_HEX.every(([ax, ay], index) => {
     const [bx, by] = SOIL_HEX[(index + 1) % SOIL_HEX.length];
