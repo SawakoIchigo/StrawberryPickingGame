@@ -14,7 +14,7 @@
       <div class="brand"><img src="./assets/ichigo-friend.svg" alt="" width="52" height="58"><div><span class="eyebrow">ちいさな いちごのうえん</span><h1>いちごつみ<span>！</span></h1></div></div>
       <nav class="controls" aria-label="ゲームのメニュー"><button id="show-guide" aria-label="あそびかた"><span aria-hidden="true">?</span><small>あそびかた</small></button><button id="pause" disabled aria-label="ひとやすみ"><span aria-hidden="true">Ⅱ</span><small>ひとやすみ</small></button></nav>
       <div class="stats" aria-label="収穫のきろく">
-        <div class="score-stat"><span aria-hidden="true" class="stat-icon">★</span><div><span>あつめた ポイント</span><strong><b id="score">0</b><small> てん</small></strong></div></div>
+        <div class="score-stat"><span aria-hidden="true" class="stat-icon">★</span><div><strong><b id="score">0</b><small> てん</small></strong></div></div>
         <div class="shipment-stat" hidden><span aria-hidden="true" class="stat-icon">▤</span><div><span>おとどけ できたよ</span><strong><b id="shipments">0</b><small> パック</small></strong></div></div>
       </div>
     </header>
@@ -153,7 +153,7 @@
         <p id="pack-hint" class="pack-hint">8こ ならべて おとどけしよう</p>
         <div id="pack" class="pack" aria-label="収穫したいちご、8こまで"></div>
         <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ5 / 5"><div id="life-hearts" class="life-hearts" aria-hidden="true"></div></div>
-        <button id="ship" class="primary ship" aria-label="あと 8こ あつめよう" disabled><span aria-hidden="true">↗</span><span id="ship-label">あと 8こ</span></button>
+        <button id="ship" class="primary ship" aria-label="あと 8こ あつめよう" disabled><span id="ship-label">あと 8こ</span></button>
         <div class="friend-note"><img src="./assets/ichigo-friend.svg" alt="" width="60" height="68"><p id="feedback" class="feedback" role="status" aria-live="polite">いっしょに<br>いちごを つもう！</p></div>
       </section>
       </aside>

@@ -388,7 +388,6 @@ function render() {
   }
   $('ship').disabled = game.pack.length !== CONFIG.packSize || game.status !== 'running';
   $('ship').classList.toggle('is-delivered', delivered);
-  $('ship').firstElementChild.textContent = delivered ? '✓' : '↗';
   $('ship-label').textContent = delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ`;
   $('ship').setAttribute('aria-label', delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ あつめよう`);
   if (game.status === 'gameover' && !$('gameover-dialog').open) {
