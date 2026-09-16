@@ -129,7 +129,7 @@ function fitFarm() {
   const viewport = document.querySelector('.farm-viewport');
   const scale = Math.min(viewport.clientWidth / FIELD.width, viewport.clientHeight / FIELD.height);
   viewport.style.setProperty('--farm-scale', scale);
-  viewport.style.setProperty('--rain-distance', `${viewport.clientHeight + 32}px`);
+  viewport.style.setProperty('--rain-distance', `${viewport.clientHeight + 64}px`);
   $('farm').style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 new ResizeObserver(fitFarm).observe(document.querySelector('.farm-viewport'));

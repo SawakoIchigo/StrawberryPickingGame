@@ -327,6 +327,7 @@ h1>span {
   color:#416a79;
 }
 .rain-curtain {
+  --rain-play-state:running;
   display:none;
   position:absolute;
   inset:0;
@@ -341,23 +342,53 @@ h1>span {
 .rain-drop {
   position:absolute;
   left:var(--rain-x);
-  top:-16px;
-  width:2px;
-  height:13px;
+  top:-32px;
+  width:1.5px;
+  height:23px;
   border-radius:2px;
-  background:#c4e9f4;
-  opacity:.65;
+  background:linear-gradient(transparent,#b1d6e5 45%,#e3f6fa);
+  opacity:.57;
   pointer-events:none;
-  animation:rain-fall 1.4s linear infinite;
+  animation:rain-fall var(--rain-speed) linear infinite;
   animation-delay:var(--rain-delay);
+  animation-play-state:var(--rain-play-state);
 }
-:root:not([data-game-status="running"]) .rain-drop {
-  animation-play-state:paused;
+.rain-drop-far {
+  width:1px;
+  height:12px;
+  opacity:.3;
+}
+.rain-drop:nth-child(3n) {
+  height:17px;
+}
+.rain-splash {
+  position:absolute;
+  left:var(--splash-x);
+  bottom:var(--splash-bottom);
+  width:12px;
+  height:4px;
+  border:1px solid #d8eef3;
+  border-radius:50%;
+  opacity:0;
+  animation:rain-splash 1.9s ease-out infinite;
+  animation-delay:var(--splash-delay);
+  animation-play-state:var(--rain-play-state);
+}
+:root:not([data-game-status="running"]) .rain-curtain {
+  --rain-play-state:paused;
 }
 @keyframes rain-fall {
-  to {
-    transform:translateY(var(--rain-distance,400px));
+  from {
+    transform:translate3d(-24px,0,0) rotate(-6deg);
   }
+  to {
+    transform:translate3d(calc(var(--rain-distance,400px) * .105 - 24px),var(--rain-distance,400px),0) rotate(-6deg);
+  }
+}
+@keyframes rain-splash {
+  0%,65%,100% { opacity:0; transform:scale(.25); }
+  70% { opacity:.42; transform:scale(.5); }
+  90% { opacity:0; transform:scale(1.35); }
 }
 .farm {
   position:absolute;
@@ -1679,7 +1710,19 @@ summary {
     display:none;
   }
   .rain-drop {
-    top:var(--rain-rest);
-    opacity:.45;
+    display:none;
+  }
+  /* Keep rain recognizable as falling weather, with only six faint drops. */
+  .rain-drop:nth-child(4n+1) {
+    display:block;
+    width:1px;
+    height:12px;
+    opacity:.28;
+    animation:rain-fall 2.8s linear infinite!important;
+    animation-delay:var(--rain-delay)!important;
+    animation-play-state:var(--rain-play-state)!important;
+  }
+  .rain-splash {
+    display:none;
   }
 }
