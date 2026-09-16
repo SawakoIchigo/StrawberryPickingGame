@@ -2199,8 +2199,39 @@ summary {
 
 .topbar { position:relative; z-index:6; }
 .topbar .controls { position:relative; z-index:1; }
+@font-face {
+  font-family:"Farm Orbitron";
+  src:url("assets/fonts/Orbitron-Bold.ttf") format("truetype");
+  font-weight:700;
+  font-style:normal;
+  font-display:swap;
+}
+.score-stat #score { font-family:"Farm Orbitron",sans-serif; font-size:.82em; font-weight:700; }
+.score-unit {
+  display:inline-block;
+  position:relative;
+  width:2.05em;
+  height:1.05em;
+  margin-left:.25em;
+  background:url("assets/fonts/score-ten.svg") center/contain no-repeat;
+  vertical-align:baseline;
+}
+.score-unit-text {
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip-path:inset(50%);
+  white-space:nowrap;
+}
 .score-stat strong { display:inline-block; pointer-events:none; transform:none; transform-origin:right top; transition:transform .16s ease-out; }
 .score-stat strong.is-counting { transform:translateY(44px) scale(2); text-shadow:0 1px 2px #fff9e9; }
+@media(max-width:479px) {
+  .score-stat #score { font-size:.76em; }
+}
 @media(max-width:359px) {
+  .score-stat #score { font-size:.71em; }
   .score-stat strong.is-counting { transform:translate(5px,44px) scale(2); }
 }
