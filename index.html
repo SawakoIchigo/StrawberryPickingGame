@@ -1,29 +1,43 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#c8f0fb">
+  <meta name="theme-color" content="#fff6df">
   <meta name="description" content="いちごを育てて、8こ入りのパックを出荷しよう。タップで遊べる、時間制限のないいちご収穫ゲーム。">
-  <title>いちごつみゲーム</title>
+  <title>いちごつみ｜ちいさな いちごのうえん</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
-      <h1>いちごつみゲーム</h1>
-      <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ5 / 5">
-        <span aria-hidden="true">ライフ</span><div id="life-hearts" class="life-hearts" aria-hidden="true"></div>
-      </div>
+      <div class="brand"><img src="./assets/ichigo-friend.svg" alt="" width="52" height="58"><div><span class="eyebrow">ちいさな いちごのうえん</span><h1>いちごつみ<span>！</span></h1></div></div>
+      <nav class="controls" aria-label="ゲームのメニュー"><button id="show-guide" aria-label="あそびかた"><span aria-hidden="true">?</span><small>あそびかた</small></button><button id="pause" disabled aria-label="ひとやすみ"><span aria-hidden="true">Ⅱ</span><small>ひとやすみ</small></button></nav>
     </header>
     <div class="stats" aria-label="収穫のきろく">
-      <div class="score-stat"><span>合計ポイント</span><strong><b id="score">0</b><small> 点</small></strong></div>
-      <div><span>出荷できたよ</span><strong><b id="shipments">0</b><small> パック</small></strong></div>
-      <div class="stats-controls"><div class="controls"><button id="pause" disabled aria-label="ひとやすみ">休む</button><button id="restart" aria-label="はじめからやりなおす">↻</button></div></div>
+      <div class="score-stat"><span aria-hidden="true" class="stat-icon">★</span><div><span>あつめた ポイント</span><strong><b id="score">0</b><small> てん</small></strong></div></div>
+      <div class="shipment-stat"><span aria-hidden="true" class="stat-icon">▤</span><div><span>おとどけ できたよ</span><strong><b id="shipments">0</b><small> パック</small></strong></div></div>
+      <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ5 / 5"><span>たいせつな ハート</span><div id="life-hearts" class="life-hearts" aria-hidden="true"></div></div>
     </div>
     <main class="game-layout">
       <section class="farm-panel" aria-label="いちご畑">
+        <div class="farm-caption"><span id="weather-sign" class="farm-sign" role="status" aria-live="polite">いちごの はたけ</span><span id="field-hint">あかくなったら タップ！</span></div>
+        <div class="farm-weather" aria-hidden="true"><span class="sun">☀</span><span class="cloud cloud-one"></span><span class="cloud cloud-two"></span></div>
         <div class="farm-viewport" role="region" aria-label="一つの鉢に育つ5株のいちご">
+          <div class="rain-curtain" aria-hidden="true">
+            <i class="rain-drop" style="--rain-x:8%;--rain-delay:-.2s;--rain-rest:24%"></i>
+            <i class="rain-drop" style="--rain-x:17%;--rain-delay:-.8s;--rain-rest:69%"></i>
+            <i class="rain-drop" style="--rain-x:25%;--rain-delay:-.4s;--rain-rest:41%"></i>
+            <i class="rain-drop" style="--rain-x:33%;--rain-delay:-1.1s;--rain-rest:83%"></i>
+            <i class="rain-drop" style="--rain-x:40%;--rain-delay:-.1s;--rain-rest:15%"></i>
+            <i class="rain-drop" style="--rain-x:47%;--rain-delay:-.6s;--rain-rest:54%"></i>
+            <i class="rain-drop" style="--rain-x:54%;--rain-delay:-1s;--rain-rest:77%"></i>
+            <i class="rain-drop" style="--rain-x:62%;--rain-delay:-.3s;--rain-rest:32%"></i>
+            <i class="rain-drop" style="--rain-x:69%;--rain-delay:-.9s;--rain-rest:72%"></i>
+            <i class="rain-drop" style="--rain-x:77%;--rain-delay:-.5s;--rain-rest:47%"></i>
+            <i class="rain-drop" style="--rain-x:84%;--rain-delay:-1.2s;--rain-rest:89%"></i>
+            <i class="rain-drop" style="--rain-x:92%;--rain-delay:-.7s;--rain-rest:61%"></i>
+          </div>
           <div class="planter" aria-hidden="true">
             <svg viewBox="0 0 300 360" preserveAspectRatio="none" focusable="false">
               <defs>
@@ -91,29 +105,39 @@
           <div id="farm" class="farm"></div>
         </div>
       </section>
-      <div class="sidepanels">
+      <aside class="sidepanels">
       <section class="workbench" aria-labelledby="pack-heading">
-        <div class="section-heading"><h2 id="pack-heading">いちごパック</h2><strong id="pack-count">0 / 8</strong><button id="show-guide" aria-label="いちごの成長とポイントを見る">?</button></div>
-        <p class="pack-hint">8こ そろえて出荷しよう！</p>
+        <div class="awning" aria-hidden="true"></div>
+        <div class="section-heading"><div><span class="eyebrow">とれたて おいしい</span><h2 id="pack-heading">いちごのおみせ</h2></div><strong id="pack-count">0 / 8</strong></div>
+        <p id="pack-hint" class="pack-hint">8こ ならべて おとどけしよう</p>
         <div id="pack" class="pack" aria-label="収穫したいちご、8こまで"></div>
-        <button id="ship" class="primary ship" disabled>あと8こで出荷</button>
-        <p id="feedback" class="feedback" role="status" aria-live="polite">おいしいいちごを集めよう</p>
+        <button id="ship" class="primary ship" aria-label="あと 8こ あつめよう" disabled><span aria-hidden="true">↗</span><span id="ship-label">あと 8こ</span></button>
+        <div class="friend-note"><img src="./assets/ichigo-friend.svg" alt="" width="60" height="68"><p id="feedback" class="feedback" role="status" aria-live="polite">いっしょに<br>いちごを つもう！</p></div>
       </section>
-      </div>
+      <div class="field-guide" aria-hidden="true"><span>ちいさな おやくそく</span><p>あかい いちごが<br>いちばん おいしいよ。</p><div class="ripeness-preview"><i>✿</i><b>→</b><i>🍓</i><b>→</b><i>▦</i></div></div>
+      </aside>
     </main>
+    <footer class="farm-footer"><span>ひとつ ひとつ、できた！が ふえる。</span><button id="restart" aria-label="はじめからやりなおす">↻ はじめから</button></footer>
     <div id="point-effects" aria-hidden="true"></div>
-    <p id="harvest-tip" role="status" aria-live="polite" hidden>タップしてイチゴを収穫しよう</p>
+    <p id="harvest-tip" role="status" aria-live="polite" hidden>いちごが あかくなるのを まってね</p>
   </div>
-  <dialog id="guide-dialog" aria-labelledby="growth-heading"><h2 id="growth-heading">いちごの成長とポイント</h2><div id="legend" class="legend"></div><button id="close-guide">とじる</button></dialog>
-  <dialog id="welcome" aria-labelledby="welcome-title">
-    <h2 id="welcome-title">いちごつみゲーム</h2>
-    <p>いちごの鉢を育てよう！<br>ピンク・赤・こい赤の実をとって、<br><strong>8こ入りのパック</strong>を出荷しよう。</p>
-    <p class="dialog-note">実が1こくさると、ライフが1つ減るよ。<br>ハート5つがなくなる前に収穫しよう！</p>
-    <button id="start" class="primary">収穫をはじめる</button>
+  <dialog id="guide-dialog" aria-labelledby="growth-heading">
+    <span class="eyebrow">いちごつみの コツ</span><h2 id="growth-heading">どうやって あそぶの？</h2>
+    <div class="howto"><div><span>👆</span><b>いちごを タップ</b><small>ピンク・あか・こいあか</small></div><div><span>▦</span><b>8こで おとどけ</b><small>パックが いっぱいに！</small></div></div>
+    <p class="dialog-note">あかい いちごは 150てん！<br>くさると ハートが ひとつ へるよ。</p>
+    <details><summary>いちごの そだちかた</summary><div id="legend" class="legend"></div></details><button id="close-guide" class="primary">わかった！</button>
   </dialog>
-  <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀️</span><h2 id="pause-title">ちょっと、ひとやすみ</h2><p>いちごの成長は止まっているよ。</p><button id="resume" class="primary">つづける</button></dialog>
-  <dialog id="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">はじめから遊ぶ？</h2><p>いまのパックと収穫のきろくが<br>ゼロになるよ。</p><div class="dialog-actions"><button id="cancel-restart">もどる</button><button id="confirm-restart" class="primary">はじめから</button></div></dialog>
-  <dialog id="gameover-dialog" aria-labelledby="gameover-title"><h2 id="gameover-title">ゲーム終了</h2><p>ハートがなくなったよ。<br>遊んでくれてありがとう！</p><p id="gameover-result"></p><button id="play-again" class="primary">もう一度あそぶ</button></dialog>
+  <dialog id="welcome" class="welcome-dialog" aria-labelledby="welcome-title">
+    <div class="welcome-art" aria-hidden="true"><span class="welcome-spark spark-one">✦</span><img src="./assets/ichigo-friend.svg" alt="" width="150" height="168"><span class="welcome-spark spark-two">✿</span><span class="welcome-patch">きょうは きみが<br>のうえんちょう！</span></div>
+    <span class="eyebrow">ちいさな いちごのうえんへ ようこそ</span>
+    <h2 id="welcome-title">いちご、<br><em>つみにいこう！</em></h2>
+    <p>あかい いちごを ぽんっ。<br>8こ あつめて、みんなに おとどけ。</p>
+    <button id="start" class="primary">あそぶ <span aria-hidden="true">→</span></button>
+    <p class="welcome-note">おと は でないよ。いつでも ひとやすみできるよ。</p>
+  </dialog>
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀</span><span class="eyebrow">のんびり いこう</span><h2 id="pause-title">ちょっと ひとやすみ</h2><p>いちごも いっしょに おやすみ。<br>そだつ じかんは とまっているよ。</p><button id="resume" class="primary">つづきを あそぶ →</button></dialog>
+  <dialog id="restart-dialog" aria-labelledby="restart-title"><span class="dialog-emoji" aria-hidden="true">↻</span><h2 id="restart-title">はじめから あそぶ？</h2><p>いまの パックと ポイントが<br>ゼロに もどるよ。</p><div class="dialog-actions"><button id="cancel-restart" autofocus>もどる</button><button id="confirm-restart" class="primary">はじめから</button></div></dialog>
+  <dialog id="gameover-dialog" aria-labelledby="gameover-title"><div class="result-medal" aria-hidden="true">★</div><span class="eyebrow">きょうの のうえんの きろく</span><h2 id="gameover-title">がんばったね！</h2><p>ハートが なくなったので おしまい。<br>いちごの おせわ、ありがとう。</p><p id="gameover-result" class="gameover-result"></p><button id="play-again" class="primary">もういっかい あそぶ →</button></dialog>
   <script type="module" src="./game.js"></script>
 </body>
 </html>

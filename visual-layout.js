@@ -2,7 +2,7 @@
 export const SCENE = Object.freeze({ width: 300, height: 330, minimumWidth: 250, hitSize: 48 });
 // minimumScale is the supported 320×568-and-larger phone baseline for tests;
 // the UI may scale further on unusually small screens instead of clipping.
-export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 40, minimumScale: .8, leafScale: .4, leafSize: 1.35 });
+export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 44, minimumScale: .8, leafScale: .4, leafSize: 1.35 });
 export function fieldPlantOrigin(index) {
   return [{ x: 150, y: 205 }, { x: 84, y: 125 }, { x: 219, y: 125 }, { x: 84, y: 290 }, { x: 219, y: 290 }][index];
 }

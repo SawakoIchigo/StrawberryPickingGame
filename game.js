@@ -24,6 +24,62 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let hasShownHarvestTip = false;
 let harvestTipTimer;
 let guideWasRunning = false;
+let deliverySuccessUntil = 0;
+const effectTimers = new Map();
+const praise = ['とれた！ じょうず！', 'いいね！ おいしそう！', 'ぽんっ！ できたね！', 'すてきな いちご！'];
+function removeLater(element, milliseconds) {
+  effectTimers.set(element, setTimeout(() => { element.remove(); effectTimers.delete(element); }, milliseconds));
+}
+function flyToPack(rect, stage, slotIndex) {
+  if (reducedMotion.matches || !rect) return;
+  const destination = $('pack').children[slotIndex]?.getBoundingClientRect();
+  if (!destination) return;
+  const appRect = document.querySelector('.app').getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2 - appRect.left;
+  const centerY = rect.top + rect.height / 2 - appRect.top;
+  const berrySize = rect.width * 52 / FIELD.hitSize;
+  const burst = document.createElement('span');
+  burst.className = 'harvest-burst';
+  burst.style.left = `${centerX}px`;
+  burst.style.top = `${centerY}px`;
+  burst.style.setProperty('--burst-size', `${berrySize}px`);
+  for (let i = 0; i < 5; i++) {
+    const spark = document.createElement('i');
+    const angle = (i * 72 - 90) * Math.PI / 180;
+    spark.style.setProperty('--spark-x', `${Math.cos(angle) * berrySize * .65}px`);
+    spark.style.setProperty('--spark-y', `${Math.sin(angle) * berrySize * .65}px`);
+    burst.append(spark);
+  }
+  const flight = document.createElement('span');
+  flight.className = 'harvest-flight';
+  flight.append(sprite(stage + 5, stage));
+  flight.style.width = `${berrySize}px`;
+  flight.style.height = `${berrySize}px`;
+  flight.style.left = `${centerX - berrySize / 2}px`;
+  flight.style.top = `${centerY - berrySize / 2}px`;
+  flight.style.setProperty('--fly-x', `${destination.left + destination.width / 2 - rect.left - rect.width / 2}px`);
+  flight.style.setProperty('--fly-y', `${destination.top + destination.height / 2 - rect.top - rect.height / 2}px`);
+  // One visual berry pops at the harvest point before continuing to the pack.
+  $('point-effects').append(burst, flight);
+  removeLater(burst, 480);
+  removeLater(flight, 750);
+}
+function celebrateDelivery() {
+  if (reducedMotion.matches) return;
+  const celebration = document.createElement('div');
+  celebration.className = 'celebration';
+  celebration.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 22; i++) {
+    const piece = document.createElement('i');
+    piece.style.setProperty('--x', `${15 + Math.random() * 70}%`);
+    piece.style.setProperty('--y', `${20 + Math.random() * 20}%`);
+    piece.style.setProperty('--color', ['#e76973', '#ecc458', '#79a475', '#faf4d5'][i % 4]);
+    piece.style.setProperty('--delay', `${Math.random() * .25}s`);
+    celebration.append(piece);
+  }
+  $('point-effects').append(celebration);
+  removeLater(celebration, 1900);
+}
 function sprite(index, stage) {
   const element = document.createElement('span');
   element.className = 'sprite';
@@ -72,6 +128,8 @@ function advanceAndShow(seconds) {
 function fitFarm() {
   const viewport = document.querySelector('.farm-viewport');
   const scale = Math.min(viewport.clientWidth / FIELD.width, viewport.clientHeight / FIELD.height);
+  viewport.style.setProperty('--farm-scale', scale);
+  viewport.style.setProperty('--rain-distance', `${viewport.clientHeight + 32}px`);
   $('farm').style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 new ResizeObserver(fitFarm).observe(document.querySelector('.farm-viewport'));
@@ -94,6 +152,7 @@ function begin() {
   if ($('welcome').open) $('welcome').close();
   if ($('pause-dialog').open) $('pause-dialog').close();
   render();
+  $('pause').focus({ preventScroll: true });
   return true;
 }
 function pause() {
@@ -105,18 +164,28 @@ function pause() {
 function harvest(plantId, berryId) {
   syncTime();
   const berry = game.plants.find(plant => plant.id === plantId)?.berries.find(item => item.id === berryId);
-  const points = berry ? berryPoints[berryStage(berry, game.elapsed)] : 0;
+  const stage = berry ? berryStage(berry, game.elapsed) : 0;
+  const points = berry ? berryPoints[stage] : 0;
+  const button = berryElements.get(berryId);
+  const rect = button?.getBoundingClientRect();
+  const hadFocus = document.activeElement === button;
   if (!pickBerry(game, plantId, berryId)) return false;
   showPoints(berryElements.get(berryId), points);
-  announce(`+${points}ポイント！ ${game.pack.length === CONFIG.packSize ? '8こそろった！ 出荷しよう' : `あと${CONFIG.packSize - game.pack.length}こ`}`);
+  announce(game.pack.length === CONFIG.packSize ? '8こ そろった！ おとどけしよう！' : `${praise[(game.pack.length - 1) % praise.length]} あと ${CONFIG.packSize - game.pack.length}こ`);
   render();
+  flyToPack(rect, stage, game.pack.length - 1);
+  if (hadFocus) (game.pack.length === CONFIG.packSize ? $('ship') : document.querySelector('.berry:not(:disabled)') ?? $('pause')).focus({ preventScroll: true });
   return true;
 }
 function ship() {
   syncTime();
   if (!shipPack(game)) return false;
-  announce(`${game.shipments}パック出荷できたよ！ ありがとう！`);
+  const hadFocus = document.activeElement === $('ship');
+  deliverySuccessUntil = performance.now() + 1900;
+  announce(`${game.shipments}パック おとどけ！ また あつめよう！`);
   render();
+  celebrateDelivery();
+  if (hadFocus) (document.querySelector('.berry:not(:disabled)') ?? $('pause')).focus({ preventScroll: true });
   return true;
 }
 function buildPlant(plant) {
@@ -180,6 +249,12 @@ function renderBreeze() {
 }
 function render() {
   document.documentElement.dataset.gameStatus = game.status;
+  const farmPanel = document.querySelector('.farm-panel');
+  if (farmPanel.classList.contains('is-raining') !== game.rain.active) {
+    farmPanel.classList.toggle('is-raining', game.rain.active);
+    $('weather-sign').textContent = game.rain.active ? 'あめで すくすく！' : 'いちごの はたけ';
+    document.querySelector('.farm-viewport').setAttribute('aria-label', game.rain.active ? 'いちご畑。あめで すくすく！ いちごの へんかが はやくなるよ' : '一つの鉢に育つ5株のいちご');
+  }
   $('shipments').textContent = game.shipments;
   $('score').textContent = game.score;
   if ($('lives').dataset.remaining !== String(game.lives)) {
@@ -234,23 +309,32 @@ function render() {
     }
   }
   $('pack-count').textContent = `${game.pack.length} / ${CONFIG.packSize}`;
+  const full = game.pack.length === CONFIG.packSize;
+  if (full || game.status === 'gameover') deliverySuccessUntil = 0;
+  const delivered = performance.now() < deliverySuccessUntil;
+  document.querySelector('.workbench').classList.toggle('is-full', full);
+  const pickableCount = [...berryElements.values()].filter(button => !button.disabled).length;
+  $('field-hint').textContent = full ? 'パックが いっぱい！ おとどけしよう' : pickableCount ? 'いちごを タップしてね！' : 'ゆっくり そだっているよ';
   const signature = game.pack.map(berry => berry.id).join(',');
   if ($('pack').dataset.signature !== signature) {
     $('pack').dataset.signature = signature;
     $('pack').replaceChildren(...Array.from({ length: CONFIG.packSize }, (_, i) => {
       const slot = document.createElement('div'); slot.className = 'pack-slot';
-      if (game.pack[i]) { slot.append(sprite(game.pack[i].stage + 5, game.pack[i].stage)); slot.setAttribute('aria-label', `${i + 1}こめ、${BERRY_NAMES[game.pack[i].stage]}`); }
+      if (game.pack[i]) { slot.classList.add('filled'); slot.append(sprite(game.pack[i].stage + 5, game.pack[i].stage)); slot.setAttribute('aria-label', `${i + 1}こめ、${BERRY_NAMES[game.pack[i].stage]}`); }
       else { slot.textContent = i + 1; slot.setAttribute('aria-label', `${i + 1}こめ、から`); }
       return slot;
     }));
   }
   $('ship').disabled = game.pack.length !== CONFIG.packSize || game.status !== 'running';
-  $('ship').textContent = game.pack.length === CONFIG.packSize ? '出荷する！' : `あと${CONFIG.packSize - game.pack.length}こで出荷`;
+  $('ship').classList.toggle('is-delivered', delivered);
+  $('ship').firstElementChild.textContent = delivered ? '✓' : '↗';
+  $('ship-label').textContent = delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ`;
+  $('ship').setAttribute('aria-label', delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ あつめよう`);
   if (game.status === 'gameover' && !$('gameover-dialog').open) {
     clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
     for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog']) if ($(id).open) $(id).close();
-    $('gameover-result').textContent = `${game.score}ポイント・${game.shipments}パック出荷`;
-    announce('ライフが0になりました。ゲーム終了です。');
+    $('gameover-result').textContent = `${game.shipments}パック おとどけ ／ ${game.score}てん`;
+    announce('おせわ ありがとう！ きょうの きろくを みよう。');
     $('gameover-dialog').showModal();
   }
 }
@@ -259,7 +343,7 @@ for (let i = 0; i < BERRY_NAMES.length; i++) {
   item.className = `legend-item${i >= 3 && i <= 5 ? ' pickable' : ''}${i === 4 ? ' best-ripeness' : ''}`;
   const name = document.createElement('span'); name.className = 'legend-name'; name.textContent = BERRY_NAMES[i];
   const detail = document.createElement('span'); detail.className = 'legend-detail';
-  detail.textContent = i < 3 ? 'まだ収穫できない' : i === 6 ? 'ライフが1つ減る' : i === 4 ? 'いちばん高得点！' : '収穫できるよ';
+  detail.textContent = i < 3 ? 'もうすこし まってね' : i === 6 ? 'ハートが ひとつ へるよ' : i === 4 ? 'いちばん おいしい！' : 'つめるよ！';
   const points = document.createElement('strong'); points.className = 'legend-points';
   points.textContent = berryPoints[i] ? `${berryPoints[i] > 0 ? '+' : '−'}${Math.abs(berryPoints[i])}点` : '—';
   item.append(sprite(i + 5, i), name, detail, points);
@@ -278,6 +362,7 @@ $('show-guide').addEventListener('click', () => {
 function closeGuide() {
   $('guide-dialog').close();
   if (guideWasRunning) begin();
+  $('show-guide').focus({ preventScroll: true });
 }
 $('close-guide').addEventListener('click', closeGuide);
 $('guide-dialog').addEventListener('cancel', event => { event.preventDefault(); closeGuide(); });
@@ -292,25 +377,29 @@ $('restart').addEventListener('click', () => {
 function cancelRestart() {
   $('restart-dialog').close();
   if (restartPreviousStatus === 'running') begin();
+  $('restart').focus({ preventScroll: true });
 }
 $('cancel-restart').addEventListener('click', cancelRestart);
 $('restart-dialog').addEventListener('cancel', event => { event.preventDefault(); cancelRestart(); });
 function resetGame() {
+  deliverySuccessUntil = 0;
   for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog', 'gameover-dialog']) if ($(id).open) $(id).close();
   clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
   hasShownHarvestTip = false; guideWasRunning = false; restartPreviousStatus = 'ready';
   for (const [element, timer] of pointEffects) { clearTimeout(timer); element.remove(); }
   pointEffects.clear();
+  for (const [element, timer] of effectTimers) { clearTimeout(timer); element.remove(); }
+  effectTimers.clear();
   game = createGame();
   visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
   plantElements.clear(); berryElements.clear(); $('farm').replaceChildren();
-  announce('おいしいいちごを集めよう');
+  announce('いっしょに いちごを つもう！');
   previousFrame = performance.now();
   render();
   $('welcome').showModal();
 }
 $('confirm-restart').addEventListener('click', resetGame);
-$('play-again').addEventListener('click', resetGame);
+$('play-again').addEventListener('click', () => { resetGame(); begin(); });
 for (const id of ['welcome', 'pause-dialog', 'gameover-dialog']) $(id).addEventListener('cancel', event => event.preventDefault());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && game.status === 'running') pause();
@@ -333,7 +422,7 @@ if (document.modelContext?.registerTool) {
   const registered = [];
   const result = value => ({ content: [{ type: 'text', text: JSON.stringify(value) }] });
   const definitions = [
-    { name: 'get_game_state', description: 'Read the strawberry farm and pickable berry IDs.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: () => { syncTime(); return result({ status: game.status, elapsed: game.elapsed, shipments: game.shipments, missed: game.missed, score: game.score, lives: game.lives, packCount: game.pack.length, plants: game.plants.map(plant => ({ id: plant.id, stage: plant.stage, berries: plant.berries.map(berry => ({ id: berry.id, stage: berryStage(berry, game.elapsed), pickable: game.status === 'running' && game.pack.length < CONFIG.packSize && berryStage(berry, game.elapsed) >= 3 && berryStage(berry, game.elapsed) <= 5 })) })) }); } },
+    { name: 'get_game_state', description: 'Read the strawberry farm and pickable berry IDs.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: () => { syncTime(); return result({ status: game.status, elapsed: game.elapsed, rain: { ...game.rain }, shipments: game.shipments, missed: game.missed, score: game.score, lives: game.lives, packCount: game.pack.length, plants: game.plants.map(plant => ({ id: plant.id, stage: plant.stage, berries: plant.berries.map(berry => ({ id: berry.id, stage: berryStage(berry, game.elapsed), pickable: game.status === 'running' && game.pack.length < CONFIG.packSize && berryStage(berry, game.elapsed) >= 3 && berryStage(berry, game.elapsed) <= 5 })) })) }); } },
     { name: 'start_game', description: 'Start the game from the initial welcome screen. Does not reset or resume.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, execute: () => result({ started: game.status === 'ready' && begin() }) },
     { name: 'pick_strawberries', description: 'Pick a batch of ripe strawberries, up to the eight-berry pack limit.', inputSchema: { type: 'object', properties: { berries: { type: 'array', maxItems: 8, items: { type: 'object', properties: { plantId: { type: 'integer', minimum: 1 }, berryId: { type: 'integer', minimum: 1 } }, required: ['plantId', 'berryId'], additionalProperties: false } } }, required: ['berries'], additionalProperties: false }, execute: input => { if (!input || !Array.isArray(input.berries) || input.berries.length > 8 || input.berries.some(berry => !berry || !Number.isInteger(berry.plantId) || berry.plantId < 1 || !Number.isInteger(berry.berryId) || berry.berryId < 1)) return result({ error: 'Expected up to eight positive integer plantId/berryId pairs.' }); return result({ picked: input.berries.map(berry => harvest(berry.plantId, berry.berryId)) }); } },
     { name: 'ship_pack', description: 'Ship only when the pack contains exactly eight strawberries.', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, execute: () => result({ shipped: ship() }) },

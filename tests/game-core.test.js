@@ -83,6 +83,9 @@ test('each plant transition uses saved 13–17 seconds and spawns its neighbor a
 
 test('individual berry and plant durations stay within range and vary independently', () => {
   const game = runningWithSpareLives(987654321);
+  // Check the unwatered baseline here; weather tests separately compare the
+  // saved schedules before and after a shower's one-time growth credit.
+  game.rain.nextStartsAt = Infinity;
   const observed = new Set();
   const jitterByStage = CONFIG.berryStageSeconds.map(() => new Set());
   const plantDurations = new Set();
