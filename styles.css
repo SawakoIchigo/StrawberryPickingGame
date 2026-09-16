@@ -1829,16 +1829,25 @@ summary {
 .workbench .lives {
   grid-column:2;
   grid-row:1;
+  width:100%;
   flex-direction:row;
   gap:0;
   flex:none;
 }
 .workbench .life-hearts {
-  gap:2px;
+  width:100%;
+  justify-content:space-between;
+  gap:0;
 }
 .workbench .life-heart {
   width:14px;
   height:14px;
+}
+.workbench .life-heart:first-child {
+  transform-origin:left center;
+}
+.workbench .life-heart:last-child {
+  transform-origin:right center;
 }
 .workbench .ship {
   grid-column:2;
