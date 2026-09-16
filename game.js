@@ -1,7 +1,9 @@
 import { CONFIG, BERRY_NAMES, createGame, startGame, pauseGame, advance, berryStage, pickBerry, shipPack } from './game-core.js';
-import { FIELD, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from './visual-layout.js';
+import { FIELD, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose, stepScoreDisplay } from './visual-layout.js';
+import { createHighScoreStore } from './high-scores.js';
 
 let game = createGame();
+const highScores = createHighScoreStore();
 let visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
 let previousFrame = null;
 let renderAt = -Infinity;
@@ -21,6 +23,15 @@ const plantElements = new Map();
 const berryElements = new Map();
 const berryPoints = CONFIG.berryPoints;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const scoreValue = $('score');
+const scoreGroup = document.querySelector('.score-stat strong');
+let scoreDisplay = { value: game.score, at: performance.now(), active: false };
+function renderScore(now = performance.now(), immediate = false) {
+  const next = stepScoreDisplay(scoreDisplay, game.score, now, immediate || reducedMotion.matches);
+  if (next.value !== scoreDisplay.value) scoreValue.textContent = next.value;
+  if (next.active !== scoreDisplay.active) scoreGroup.classList.toggle('is-counting', next.active);
+  scoreDisplay = next;
+}
 const rainCurtain = document.querySelector('.rain-curtain');
 const rainFarm = document.querySelector('.farm-panel');
 const rainParticles = Array.from(document.querySelectorAll('.rain-drop'), element => ({ element }));
@@ -89,6 +100,12 @@ const effectTimers = new Map();
 const praise = ['とれた！ じょうず！', 'いいね！ おいしそう！', 'ぽんっ！ できたね！', 'すてきな いちご！'];
 function removeLater(element, milliseconds) {
   effectTimers.set(element, setTimeout(() => { element.remove(); effectTimers.delete(element); }, milliseconds));
+  while (effectTimers.size > 40) {
+    const [old, timer] = effectTimers.entries().next().value;
+    clearTimeout(timer);
+    old.remove();
+    effectTimers.delete(old);
+  }
 }
 function flyToPack(rect, stage, slotIndex) {
   if (reducedMotion.matches || !rect) return;
@@ -97,21 +114,27 @@ function flyToPack(rect, stage, slotIndex) {
   const appRect = document.querySelector('.app').getBoundingClientRect();
   const centerX = rect.left + rect.width / 2 - appRect.left;
   const centerY = rect.top + rect.height / 2 - appRect.top;
-  const berrySize = rect.width * 52 / FIELD.hitSize;
+  const berrySize = rect.width * 36 / FIELD.hitSize;
   const burst = document.createElement('span');
   burst.className = 'harvest-burst';
+  burst.setAttribute('aria-hidden', 'true');
   burst.style.left = `${centerX}px`;
   burst.style.top = `${centerY}px`;
-  burst.style.setProperty('--burst-size', `${berrySize}px`);
-  for (let i = 0; i < 5; i++) {
+  const burstSize = Math.max(26, berrySize);
+  burst.style.setProperty('--burst-size', `${burstSize}px`);
+  for (let i = 0; i < 8; i++) {
     const spark = document.createElement('i');
-    const angle = (i * 72 - 90) * Math.PI / 180;
-    spark.style.setProperty('--spark-x', `${Math.cos(angle) * berrySize * .65}px`);
-    spark.style.setProperty('--spark-y', `${Math.sin(angle) * berrySize * .65}px`);
+    spark.className = ['spark-berry', 'spark-leaf', 'spark-gold', 'spark-pink'][i % 4];
+    const angle = (i * 45 - 90) * Math.PI / 180;
+    const distance = burstSize * (i % 2 ? .95 : 1.2);
+    spark.style.setProperty('--spark-x', `${Math.cos(angle) * distance}px`);
+    spark.style.setProperty('--spark-y', `${Math.sin(angle) * distance}px`);
+    spark.style.setProperty('--spark-delay', `${i % 3 * .025}s`);
     burst.append(spark);
   }
   const flight = document.createElement('span');
   flight.className = 'harvest-flight';
+  flight.setAttribute('aria-hidden', 'true');
   flight.append(sprite(stage + 5, stage));
   flight.style.width = `${berrySize}px`;
   flight.style.height = `${berrySize}px`;
@@ -121,8 +144,8 @@ function flyToPack(rect, stage, slotIndex) {
   flight.style.setProperty('--fly-y', `${destination.top + destination.height / 2 - rect.top - rect.height / 2}px`);
   // One visual berry pops at the harvest point before continuing to the pack.
   $('point-effects').append(burst, flight);
-  removeLater(burst, 480);
-  removeLater(flight, 750);
+  removeLater(burst, 780);
+  removeLater(flight, 950);
 }
 function celebrateDelivery() {
   if (reducedMotion.matches) return;
@@ -314,10 +337,10 @@ function render() {
   if (farmPanel.classList.contains('is-raining') !== game.rain.active) {
     farmPanel.classList.toggle('is-raining', game.rain.active);
     $('weather-sign').textContent = game.rain.active ? 'あめで すくすく！' : 'いちごの はたけ';
-    document.querySelector('.farm-viewport').setAttribute('aria-label', game.rain.active ? 'いちご畑。あめで すくすく！ いちごの へんかが はやくなるよ' : '一つの鉢に育つ5株のいちご');
+    document.querySelector('.farm-viewport').setAttribute('aria-label', game.rain.active ? 'いちご畑。あめで すくすく！ いちごの へんかが はやくなるよ' : '一つの鉢に育つ7株のいちご');
   }
   $('shipments').textContent = game.shipments;
-  $('score').textContent = game.score;
+  renderScore();
   if ($('lives').dataset.remaining !== String(game.lives)) {
     $('lives').dataset.remaining = game.lives;
     $('lives').setAttribute('aria-label', `残りライフ${game.lives} / ${CONFIG.initialLives}`);
@@ -394,6 +417,21 @@ function render() {
     clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
     for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog']) if ($(id).open) $(id).close();
     $('gameover-result').textContent = `${game.shipments}パック おとどけ ／ ${game.score}てん`;
+    const record = highScores.record(game, game.score);
+    $('new-record').hidden = !record.newRecord;
+    $('high-scores').replaceChildren(...record.scores.map((score, index) => {
+      const item = document.createElement('li');
+      const position = document.createElement('span');
+      position.className = 'rank-position';
+      position.setAttribute('aria-hidden', 'true');
+      position.textContent = String(index + 1);
+      const value = document.createElement('strong');
+      value.textContent = `${score}てん`;
+      item.classList.toggle('is-current', record.rank === index + 1);
+      if (record.rank === index + 1) item.setAttribute('aria-current', 'true');
+      item.append(position, value);
+      return item;
+    }));
     announce('おせわ ありがとう！ きょうの きろくを みよう。');
     $('gameover-dialog').showModal();
   }
@@ -451,6 +489,7 @@ function resetGame() {
   for (const [element, timer] of effectTimers) { clearTimeout(timer); element.remove(); }
   effectTimers.clear();
   game = createGame();
+  renderScore(performance.now(), true);
   visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
   plantElements.clear(); berryElements.clear(); $('farm').replaceChildren();
   announce('いっしょに いちごを つもう！');
@@ -471,6 +510,7 @@ function frame(now) {
   if (now - renderAt >= 100) { render(); renderAt = now; }
   renderBreeze();
   renderRain();
+  renderScore(now);
   requestAnimationFrame(frame);
 }
 render();

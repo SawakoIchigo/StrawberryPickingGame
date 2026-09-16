@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repositoryDir = resolve(dirname(scriptPath), '..');
-const runtimeFiles = ['game.js', 'game-core.js', 'visual-layout.js', 'styles.css'];
+const runtimeFiles = ['game.js', 'game-core.js', 'visual-layout.js', 'high-scores.js', 'styles.css'];
 const normalize = content => content.replace(/\r\n/g, '\n');
 
 export async function buildSite({ sourceDir = repositoryDir, outputDir = join(sourceDir, '_site') } = {}) {

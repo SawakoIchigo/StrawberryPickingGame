@@ -1,16 +1,16 @@
 import test from 'node:test';
+import { CONFIG } from '../game-core.js';
 import assert from 'node:assert/strict';
-import { FIELD, FRUIT_CLEARANCE, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from '../visual-layout.js';
+import { FIELD, FRUIT_CLEARANCE, insideSoil, fruitInsideSoil, stepScoreDisplay, fieldPlantOrigin, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose } from '../visual-layout.js';
 
 function checkPositions(positions) {
   const scale = FIELD.minimumScale;
   for (const point of positions) {
-    assert.ok(point.x >= 26 && point.x <= FIELD.width - 26);
-    assert.ok(point.y >= 26 && point.y <= FIELD.height - 26);
+    assert.ok(fruitInsideSoil(point.x, point.y));
     for (const other of positions) {
       if (other === point) continue;
       assert.ok(Math.abs(point.x - other.x) >= FIELD.hitSize || Math.abs(point.y - other.y) >= FIELD.hitSize);
-      assert.ok(Math.abs(point.x - other.x) * scale >= 32 || Math.abs(point.y - other.y) * scale >= 32);
+      assert.ok(Math.abs(point.x - other.x) * scale >= FIELD.hitSize * scale || Math.abs(point.y - other.y) * scale >= FIELD.hitSize * scale);
     }
   }
 }
@@ -76,18 +76,18 @@ test('three to five leaf groups stay separated with smoothly aligned petioles', 
   }
 });
 
-test('all five plants fit the continuous field without overlapping fruit hitboxes', () => {
+test('all seven plants fit the continuous field without overlapping fruit hitboxes', () => {
   const initialOrigin = fieldPlantOrigin(0);
   assert.ok(Math.abs(initialOrigin.x - FIELD.width / 2) < 20 && Math.abs(initialOrigin.y - FIELD.height / 2) < 35,
     'the first plant grows near the center of the planter');
   for (let seed = 0; seed < 100; seed++) {
     const points = [];
     const field = createFieldLayout(seed);
-    for (let plant = 0; plant < 5; plant++) {
+    for (let plant = 0; plant < 7; plant++) {
       const origin = fieldPlantOrigin(plant);
       assert.ok(origin.x > 0 && origin.x < FIELD.width);
       assert.ok(origin.y > 0 && origin.y < FIELD.height);
-      const layout = createPlantLayout(seed * 5 + plant, plant, field);
+      const layout = createPlantLayout(seed * 7 + plant, plant, field);
       for (let slot = 0; slot < 7; slot++) {
         const point = placeFruit(layout, slot + 1, slot);
         points.push(point);
@@ -114,7 +114,7 @@ test('breeze is slow and irregular, bending connected leaves while roots and fru
   }
 
   const field = createFieldLayout(42);
-  const layouts = Array.from({ length: 5 }, (_, plant) => createPlantLayout(plant + 10, plant, field));
+  const layouts = Array.from({ length: 7 }, (_, plant) => createPlantLayout(plant + 10, plant, field));
   for (const layout of layouts) for (let slot = 0; slot < 7; slot++) placeFruit(layout, slot + 1, slot);
   const savedField = structuredClone(field);
   const savedCrowns = layouts.map(layout => structuredClone(layout.fieldCrown));
@@ -152,8 +152,8 @@ test('seeded field packing has varied gaps rather than recurring aligned rows an
   const first = createFieldLayout(42), same = createFieldLayout(42), other = createFieldLayout(43);
   assert.deepEqual(first, same);
   assert.notDeepEqual(first, other);
-  assert.equal(first.points.length, 35);
-  for (let owner = 0; owner < 5; owner++) assert.equal(first.points.filter(point => point.owner === owner).length, 7);
+  assert.equal(first.points.length, 49);
+  for (let owner = 0; owner < 7; owner++) assert.equal(first.points.filter(point => point.owner === owner).length, 7);
   for (const point of first.points) {
     for (const other of first.points) if (point !== other) assert.ok(Math.abs(point.x - other.x) >= FRUIT_CLEARANCE || Math.abs(point.y - other.y) >= FRUIT_CLEARANCE);
   }
@@ -179,7 +179,7 @@ test('random fields do not repeatedly concentrate fruit into evenly spaced bands
   const scores = [];
   for (let seed = 0; seed < 32; seed++) {
     const field = createFieldLayout(seed);
-    const layouts = Array.from({ length: 5 }, (_, plant) => createPlantLayout(seed * 5 + plant, plant, field));
+    const layouts = Array.from({ length: 7 }, (_, plant) => createPlantLayout(seed * 7 + plant, plant, field));
     const fruit = layouts.flatMap(layout => Array.from({ length: 7 }, (_, slot) => ({ layout, id: slot + 1, slot, ...placeFruit(layout, slot + 1, slot) })));
     for (let cohort = 0; cohort < 20; cohort++) {
       const index = cohort % fruit.length;
@@ -197,4 +197,39 @@ test('random fields do not repeatedly concentrate fruit into evenly spaced bands
   }
   assert.ok(scores.reduce((sum, score) => sum + score, 0) / scores.length < .6,
     'field and regrowth layouts avoid the strong repeating bands of a jittered grid');
+});
+
+test('seven owners match game capacity and all leaf envelopes remain inside hexagonal soil', () => {
+  assert.equal(CONFIG.maxPlants, 7);
+  assert.equal(fieldPlantOrigin(7), undefined);
+  const field = createFieldLayout(9);
+  assert.equal(new Set(field.points.map(point => point.owner)).size, CONFIG.maxPlants);
+  for (let seed = 0; seed < 100; seed++) for (let plant = 0; plant < CONFIG.maxPlants; plant++) {
+    const layout = createPlantLayout(seed, plant, field);
+    for (const leaf of layout.leaves) for (const wind of [0, 1]) {
+      const pose = leafPose(layout, leaf, wind);
+      const radius = leaf.radius * leaf.size * FIELD.leafScale * FIELD.leafSize;
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 16) {
+        assert.ok(insideSoil(pose.x + Math.cos(angle) * radius, pose.y + Math.sin(angle) * radius));
+      }
+    }
+  }
+});
+
+test('score display counts ten points every 40ms toward the latest target and snaps on reset', () => {
+  let state = { value: 100, at: 0, active: false };
+  for (let index = 1; index <= 5; index++) {
+    state = stepScoreDisplay(state, 150, index * 40);
+    assert.equal(state.value, 100 + index * 10);
+    assert.equal(state.active, index !== 5);
+  }
+  state = stepScoreDisplay(state, 300, 240);
+  assert.equal(state.value, 160);
+  state = stepScoreDisplay(state, -340, 280);
+  assert.equal(state.value, 150);
+  state = stepScoreDisplay(state, -340, 2240);
+  assert.equal(state.value, -340);
+  assert.equal(state.active, false);
+  assert.deepEqual(stepScoreDisplay(state, 0, 2250, true), { value: 0, at: 2250, active: false });
+  assert.equal(stepScoreDisplay(state, 999999, 2250, true).value, 999999);
 });

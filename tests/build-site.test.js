@@ -18,9 +18,10 @@ test('published HTML and nested modules share a version that changes with every 
   const outputDir = join(scratch, 'site');
   const source = {
     'index.html': '<link rel="stylesheet" href="./styles.css"><script type="module" src="./game.js"></script>',
-    'game.js': 'import { CONFIG } from \'./game-core.js\';\r\nimport { FIELD } from "./visual-layout.js";\r\nexport const state = [CONFIG.initialLives, FIELD.width];',
+    'game.js': 'import { CONFIG } from \'./game-core.js\';\r\nimport { FIELD } from "./visual-layout.js";\r\nimport { scores } from "./high-scores.js";\r\nexport const state = [CONFIG.initialLives, FIELD.width, scores];',
     'game-core.js': 'export const CONFIG = { initialLives: 3 };',
     'visual-layout.js': 'export const FIELD = { width: 300 };',
+    'high-scores.js': 'export const scores = [];',
     'styles.css': '.berry { color: red; }',
   };
   await mkdir(join(sourceDir, 'assets'), { recursive: true });
@@ -36,9 +37,9 @@ test('published HTML and nested modules share a version that changes with every 
     const script = await readFile(join(directory, entry), 'utf8');
     const imports = [...script.matchAll(/from ['"]\.\/([^'"]+)['"]/g)].map(match => match[1]);
     const links = [entry, stylesheet, ...imports];
-    assert.equal(links.length, 4);
+    assert.equal(links.length, 5);
     const versions = links.map(name => {
-      const match = name.match(/^(?:game|game-core|visual-layout|styles)\.([a-f0-9]{16})\.(?:js|css)$/);
+      const match = name.match(/^(?:game|game-core|visual-layout|high-scores|styles)\.([a-f0-9]{16})\.(?:js|css)$/);
       assert.ok(match, `${name} must use a versioned cache key`);
       return match[1];
     });

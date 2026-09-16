@@ -5,7 +5,7 @@ import { CONFIG, createGame, startGame, pauseGame, advance, berryStage, pickBerr
 function running(seed = 123456789) { const game = createGame(seed); startGame(game); return game; }
 function runningWithSpareLives(seed) {
   // Long-duration scheduling tests need to observe later plants independently
-  // of the normal five-life gameover rule. No production option bypasses it.
+  // of the normal ten-life gameover rule. No production option bypasses it.
   const game = running(seed);
   game.lives = 10000;
   return game;
@@ -40,7 +40,7 @@ test('initial farm starts with one stage-three plant, zero score and waits for s
   assert.equal(game.plants.length, 1);
   assert.equal(game.plants[0].stage, 3);
   assert.equal(game.score, 0);
-  assert.equal(game.lives, 5);
+  assert.equal(game.lives, 10);
   assert.equal(berryStage(game.plants[0].berries[0], 0), 0);
   const saved = structuredClone(game);
   assert.deepEqual(advance(game, 100), []);
@@ -173,11 +173,11 @@ test('an expired berry loses points once even if its rotten stage was skipped', 
   assert.deepEqual(advance(game, 1), [{ ...rotEvent(1, berry), at: 1 }]);
   assert.equal(game.missed, 1);
   assert.equal(game.score, -500);
-  assert.equal(game.lives, 4);
+  assert.equal(game.lives, 9);
   assert.ok(!game.plants[0].berries.some(item => item.id === berry.id));
   assert.deepEqual(advance(game, 1), []);
   assert.equal(game.score, -500);
-  assert.equal(game.lives, 4, 'expiry cannot remove another life for the same berry');
+  assert.equal(game.lives, 9, 'expiry cannot remove another life for the same berry');
 });
 
 test('picked berries never produce a later rot notification', () => {
@@ -327,7 +327,7 @@ test('creating a new game resets points earned in the previous game', () => {
   assert.equal(restarted.missed, 0);
   assert.equal(restarted.shipments, 0);
   assert.equal(restarted.pack.length, 0);
-  assert.equal(restarted.lives, 5);
+  assert.equal(restarted.lives, 10);
 });
 
 test('each plant stays within seven unique fruit slots through growth, harvest, pause and regrowth', () => {
@@ -361,15 +361,15 @@ test('each plant stays within seven unique fruit slots through growth, harvest, 
       }
     }
     assert.deepEqual([...observedStages].sort(), [1, 2, 3, 4, 5]);
-    assert.equal(fullPlants.size, CONFIG.maxPlants, 'all five plants can reach the seven-fruit limit');
+    assert.equal(fullPlants.size, CONFIG.maxPlants, 'all seven plants can reach the seven-fruit limit');
     assert.ok(harvested > 100 && game.missed > 100 && game.shipments > 10);
   }
 });
 
-test('five natural rot events end the game at the same exact instant for large and small updates', () => {
+test('ten natural rot events end the game at the same exact instant for large and small updates', () => {
   for (const seed of [0, 1, 42, 123456789, 0xffffffff]) {
     const reference = runningWithSpareLives(seed);
-    const expectedEvents = advance(reference, 1200).slice(0, 5);
+    const expectedEvents = advance(reference, 1200).slice(0, 10);
     const large = running(seed), small = running(seed);
     const events = advance(large, 1200);
     const smallEvents = [];
@@ -377,17 +377,18 @@ test('five natural rot events end the game at the same exact instant for large a
     assert.deepEqual(events, expectedEvents);
     assert.deepEqual(smallEvents, expectedEvents);
     assert.deepEqual(large, small);
-    assert.equal(large.elapsed, expectedEvents[4].at);
+    assert.equal(large.elapsed, expectedEvents[9].at);
     assert.equal(large.status, 'gameover');
     assert.equal(large.lives, 0);
-    assert.equal(large.missed, 5);
-    assert.equal(large.score, -2500);
+    assert.equal(large.missed, 10);
+    assert.equal(large.score, -5000);
   }
 });
 
-test('the fifth loss stops same-timestamp rot processing, including already expired berries', () => {
+test('the final loss stops same-timestamp rot processing, including already expired berries', () => {
   for (const expired of [false, true]) {
     const game = running();
+    game.lives = 5; // Five of the initial ten lives have already been lost.
     const plant = game.plants[0];
     plant.stage = 5; plant.nextGrowthAt = Infinity; plant.nextSpawnAt = Infinity;
     const template = plant.berries[0];
@@ -429,7 +430,7 @@ test('gameover blocks start, resume, pause, harvest and full-pack shipping until
   assert.deepEqual(unfilled, unfilledStopped);
   const restarted = createGame();
   assert.equal(restarted.status, 'ready');
-  assert.equal(restarted.lives, 5);
+  assert.equal(restarted.lives, 10);
   assert.equal(restarted.elapsed, 0);
   assert.equal(restarted.score, 0);
   assert.equal(restarted.missed, 0);

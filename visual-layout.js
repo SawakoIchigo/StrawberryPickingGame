@@ -2,11 +2,23 @@
 export const SCENE = Object.freeze({ width: 300, height: 330, minimumWidth: 250, hitSize: 48 });
 // minimumScale is the supported 320×568-and-larger phone baseline for tests;
 // the UI may scale further on unusually small screens instead of clipping.
-export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 44, minimumScale: .8, leafScale: .4, leafSize: 1.35 });
+export const FIELD = Object.freeze({ width: 300, height: 360, hitSize: 30, minimumScale: .8, leafScale: .22, leafSize: 1.35 });
 export function fieldPlantOrigin(index) {
-  return [{ x: 150, y: 205 }, { x: 84, y: 125 }, { x: 219, y: 125 }, { x: 84, y: 290 }, { x: 219, y: 290 }][index];
+  return [{ x: 150, y: 200 }, { x: 150, y: 100 }, { x: 225, y: 150 }, { x: 225, y: 250 }, { x: 150, y: 300 }, { x: 75, y: 250 }, { x: 75, y: 150 }][index];
 }
-export const FRUIT_CLEARANCE = 46;
+// Matches the six soil vertices in the planter SVG.
+export const SOIL_HEX = Object.freeze([[150, 12], [290, 88], [286, 270], [148, 338], [10, 266], [14, 86]].map(Object.freeze));
+export function insideSoil(x, y) {
+  return SOIL_HEX.every(([ax, ay], index) => {
+    const [bx, by] = SOIL_HEX[(index + 1) % SOIL_HEX.length];
+    return (bx - ax) * (y - ay) - (by - ay) * (x - ax) >= -1e-8;
+  });
+}
+export function fruitInsideSoil(x, y) {
+  const half = FIELD.hitSize / 2 + 1;
+  return [-half, half].every(dx => [-half, half].every(dy => insideSoil(x + dx, y + dy)));
+}
+export const FRUIT_CLEARANCE = 32;
 const RELOCATION_RADIUS = 18;
 
 export function createRandom(seed) {
@@ -53,7 +65,7 @@ export function leafPose(layout, leaf, breeze = 0) {
 }
 
 function clearPoint(points, x, y, ignore) {
-  return x >= 28 && x <= 272 && y >= 28 && y <= 326 && points.every((point, index) => index === ignore || Math.abs(point.x - x) >= FRUIT_CLEARANCE || Math.abs(point.y - y) >= FRUIT_CLEARANCE);
+  return fruitInsideSoil(x, y) && points.every((point, index) => index === ignore || Math.abs(point.x - x) >= FRUIT_CLEARANCE || Math.abs(point.y - y) >= FRUIT_CLEARANCE);
 }
 function alignmentCost(points, x, y, ignore) {
   // Penalize shared horizontal/vertical bands without prescribing new rows.
@@ -63,22 +75,24 @@ function alignmentCost(points, x, y, ignore) {
 export function createFieldLayout(seed) {
   const random = createRandom(seed);
   const points = [];
-  // Seven random vacancies let fruit move between bands. A full 5-by-7
-  // starting grid traps them in rows even after many collision-safe moves.
-  const cells = Array.from({ length: 42 }, (_, index) => index);
+  // Vacant cells give the collision-safe relaxation room to break up rows.
+  const cells = [];
+  for (let y = 16; y < FIELD.height; y += FRUIT_CLEARANCE) {
+    for (let x = 8; x < FIELD.width; x += FRUIT_CLEARANCE) {
+      if (fruitInsideSoil(x, y)) cells.push({ x, y });
+    }
+  }
   for (let index = cells.length - 1; index > 0; index--) {
     const other = Math.floor(random() * (index + 1));
     [cells[index], cells[other]] = [cells[other], cells[index]];
   }
-  for (const cell of cells.slice(0, 35)) {
-    points.push({ x: 28 + cell % 6 * 244 / 5, y: 28 + Math.floor(cell / 6) * 298 / 6 });
-  }
-  for (let step = 0; step < 22000; step++) {
+  points.push(...cells.slice(0, 49));
+  for (let step = 0; step < 50000; step++) {
     const index = Math.floor(random() * points.length);
     const point = points[index];
     const globalMove = step % 4 === 0;
-    const x = globalMove ? between(random, 28, 272) : point.x + between(random, -24, 24);
-    const y = globalMove ? between(random, 28, 326) : point.y + between(random, -24, 24);
+    const x = globalMove ? between(random, 16, 284) : point.x + between(random, -6, 6);
+    const y = globalMove ? between(random, 16, 322) : point.y + between(random, -6, 6);
     if (!clearPoint(points, x, y, index)) continue;
     const improvement = alignmentCost(points, point.x, point.y, index) - alignmentCost(points, x, y, index);
     // Keep some less favorable moves so the packing can escape local ruts.
@@ -88,8 +102,8 @@ export function createFieldLayout(seed) {
     const crown = fieldPlantOrigin(plant);
     return (point.x - crown.x) ** 2 + (point.y - crown.y) ** 2;
   };
-  const edges = points.flatMap((point, index) => Array.from({ length: 5 }, (_, plant) => ({ index, plant, cost: cost(point, plant) }))).sort((a, b) => a.cost - b.cost);
-  const counts = [0, 0, 0, 0, 0];
+  const edges = points.flatMap((point, index) => Array.from({ length: 7 }, (_, plant) => ({ index, plant, cost: cost(point, plant) }))).sort((a, b) => a.cost - b.cost);
+  const counts = Array(7).fill(0);
   for (const edge of edges) if (points[edge.index].owner === undefined && counts[edge.plant] < 7) {
     points[edge.index].owner = edge.plant; counts[edge.plant]++;
   }
@@ -135,14 +149,25 @@ export function placeFruit(layout, berryId, slot) {
   layout.previousCells.set(slot, cell);
   const point = layout.field.points[cell];
   for (let attempt = 0; attempt < 64; attempt++) {
-    const x = point.homeX + between(layout.random, -RELOCATION_RADIUS, RELOCATION_RADIUS);
-    const y = point.homeY + between(layout.random, -RELOCATION_RADIUS, RELOCATION_RADIUS);
+    const x = point.x + between(layout.random, -RELOCATION_RADIUS / 6, RELOCATION_RADIUS / 6);
+    const y = point.y + between(layout.random, -RELOCATION_RADIUS / 6, RELOCATION_RADIUS / 6);
     if (clearPoint(layout.field.points, x, y, cell)) { point.x = x; point.y = y; break; }
   }
   const { x, y } = point;
-  const endY = y - 17;
-  const swing = between(layout.random, -12, 12);
-  const archY = Math.max(25, endY - between(layout.random, 25, 55));
+  const endY = y - 12;
   const crown = layout.fieldCrown;
-  return { x, y, cell, path: `M${number(crown.x)} ${number(crown.y)} C${number(crown.x + swing)} ${number(archY)} ${number(x + swing * .3)} ${number(archY)} ${number(x)} ${number(endY)}` };
+  // A convex soil polygon contains the whole curve when all controls are inside.
+  const first = { x: crown.x * .65 + x * .35, y: crown.y * .65 + endY * .35 };
+  const second = { x: x * .9 + 150 * .1, y: endY * .9 + 175 * .1 };
+  return { x, y, cell, path: `M${number(crown.x)} ${number(crown.y)} C${number(first.x)} ${number(first.y)} ${number(second.x)} ${number(second.y)} ${number(x)} ${number(endY)}` };
+}
+
+// Display-only score interpolation: no timers and no model mutations.
+export function stepScoreDisplay(state, target, now, immediate = false) {
+  if (immediate) return { value: target, at: now, active: false };
+  if (state.value === target) return { value: target, at: now, active: false };
+  const steps = Math.floor(Math.max(0, now - state.at) / 40);
+  const difference = target - state.value;
+  const value = state.value + Math.sign(difference) * Math.min(Math.abs(difference), steps * 10);
+  return { value, at: steps ? state.at + steps * 40 : state.at, active: value !== target };
 }

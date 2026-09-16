@@ -1,9 +1,9 @@
 export const CONFIG = Object.freeze({
   plantStageSeconds: 15,
   growthJitterSeconds: 2,
-  maxPlants: 5,
+  maxPlants: 7,
   packSize: 8,
-  initialLives: 5,
+  initialLives: 10,
   berryStageSeconds: Object.freeze([4, 4, 5, 5, 7, 5, 4]),
   berryPoints: Object.freeze([0, 0, 0, 50, 150, 50, -500]),
   plantCapacity: Object.freeze({ 3: 3, 4: 5, 5: 7 }),

@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#fff6df">
   <meta name="description" content="いちごを育てて、8こ入りのパックを出荷しよう。タップで遊べる、時間制限のないいちご収穫ゲーム。">
-  <title>いちごつみ｜ちいさな いちごのうえん</title>
+  <title>さわこいちごゲーム｜ちいさな いちごのうえん</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
-      <div class="brand"><img src="./assets/ichigo-friend.svg" alt="" width="52" height="58"><div><span class="eyebrow">ちいさな いちごのうえん</span><h1>いちごつみ<span>！</span></h1></div></div>
+      <div class="brand"><img src="./assets/ichigo-friend.svg" alt="" width="52" height="58"><div><span class="eyebrow">ちいさな いちごのうえん</span><h1>さわこいちごゲーム</h1></div></div>
       <nav class="controls" aria-label="ゲームのメニュー"><button id="show-guide" aria-label="あそびかた"><span aria-hidden="true">?</span><small>あそびかた</small></button><button id="pause" disabled aria-label="ひとやすみ"><span aria-hidden="true">Ⅱ</span><small>ひとやすみ</small></button></nav>
       <div class="stats" aria-label="収穫のきろく">
         <div class="score-stat"><span aria-hidden="true" class="stat-icon">★</span><div><strong><b id="score">0</b><small> てん</small></strong></div></div>
@@ -22,7 +22,7 @@
       <section class="farm-panel" aria-label="いちご畑">
         <div class="farm-caption"><span id="weather-sign" class="farm-sign" role="status" aria-live="polite">いちごの はたけ</span><span id="field-hint">あかくなったら タップ！</span></div>
         <div class="farm-weather" aria-hidden="true"><span class="sun">☀</span><span class="cloud cloud-one"></span><span class="cloud cloud-two"></span></div>
-        <div class="farm-viewport" role="region" aria-label="一つの鉢に育つ5株のいちご">
+        <div class="farm-viewport" role="region" aria-label="一つの鉢に育つ7株のいちご">
           <svg class="rain-shapes" width="0" height="0" aria-hidden="true" focusable="false"><defs><symbol id="rain-droplet" viewBox="0 0 12 21"><path d="M6 1C5 5 1 10 1 14.5a5 5 0 0 0 10 0C11 10 7 5 6 1Z" fill="#65c9f0" stroke="#22749d" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 11.5c-1 1.5-1.4 3.5-.2 4.8" fill="none" stroke="#effcff" stroke-width="1.6" stroke-linecap="round"/></symbol></defs></svg>
           <div class="rain-curtain" aria-hidden="true">
             <svg class="rain-drop" viewBox="0 0 12 21" focusable="false"><use href="#rain-droplet"/></svg>
@@ -90,12 +90,12 @@
                 <filter id="pot-shadow" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
                 <filter id="pot-soil-grain"><feTurbulence type="fractalNoise" baseFrequency=".42 .58" numOctaves="3" seed="23"/><feColorMatrix type="saturate" values="0"/></filter>
                 <filter id="pot-wood-grain"><feTurbulence type="fractalNoise" baseFrequency=".018 .3" numOctaves="2" seed="7"/><feColorMatrix type="saturate" values="0"/></filter>
-                <clipPath id="pot-soil-clip"><path d="M62 40L274 69L233 312L26 284Z"/></clipPath>
-                <clipPath id="pot-wood-clip"><path d="M12 294L242 326L242 345L12 313ZM242 326L288 58L288 78L242 345Z"/></clipPath>
+                <clipPath id="pot-soil-clip"><path d="M150 12L290 88L286 270L148 338L10 266L14 86Z"/></clipPath>
+                <clipPath id="pot-wood-clip"><path d="M2 272L148 347L148 358L2 283ZM148 347L294 276L298 82L298 94L294 287L148 358Z"/></clipPath>
               </defs>
-              <path d="M15 311L242 344L290 83L248 352L14 320Z" fill="#241b13" opacity=".25" filter="url(#pot-shadow)"/>
-              <path d="M12 294L242 326L242 345L12 313Z" fill="url(#pot-front)" stroke="#54351f" stroke-width="1"/>
-              <path d="M242 326L288 58L288 78L242 345Z" fill="url(#pot-side)" stroke="#54351f" stroke-width="1"/>
+              <path d="M4 277L148 350L295 279L148 358L4 287Z" fill="#241b13" opacity=".25" filter="url(#pot-shadow)"/>
+              <path d="M2 272L148 347L148 358L2 283Z" fill="url(#pot-front)" stroke="#54351f" stroke-width="1"/>
+              <path d="M148 347L294 276L298 82L298 94L294 287L148 358Z" fill="url(#pot-side)" stroke="#54351f" stroke-width="1"/>
               <g clip-path="url(#pot-wood-clip)">
                 <rect x="10" y="55" width="280" height="295" filter="url(#pot-wood-grain)" opacity=".2" style="mix-blend-mode:soft-light"/>
                 <g fill="none" stroke-linecap="round">
@@ -107,13 +107,13 @@
                 </g>
                 <g fill="#463a2e" stroke="#c2996a" stroke-width=".3"><circle cx="23" cy="303" r="1"/><circle cx="83" cy="312" r=".9"/><circle cx="100" cy="314" r="1"/><circle cx="166" cy="324" r="1"/><circle cx="183" cy="326" r=".9"/><circle cx="232" cy="333" r="1"/></g>
               </g>
-              <path d="M55 26L288 58L242 326L12 294Z" fill="url(#pot-rim)" stroke="#765033" stroke-width="1.2"/>
-              <path d="M60 36L279 66L238 319L21 289Z" fill="#5a4029"/>
-              <path d="M62 40L274 69L233 312L26 284Z" fill="url(#pot-earth)"/>
+              <path d="M150 2L298 82L294 276L148 347L2 272L6 80Z" fill="url(#pot-rim)" stroke="#765033" stroke-width="1.2"/>
+              <path d="M150 9L293 86L289 273L148 341L7 269L11 84Z" fill="#5a4029"/>
+              <path d="M150 12L290 88L286 270L148 338L10 266L14 86Z" fill="url(#pot-earth)"/>
               <g clip-path="url(#pot-soil-clip)">
                 <ellipse cx="94" cy="106" rx="88" ry="90" fill="url(#pot-moisture)"/>
                 <ellipse cx="230" cy="252" rx="102" ry="61" fill="url(#pot-moisture)" opacity=".55"/>
-                <rect x="18" y="34" width="265" height="288" filter="url(#pot-soil-grain)" opacity=".34" style="mix-blend-mode:soft-light"/>
+                <rect x="8" y="10" width="284" height="330" filter="url(#pot-soil-grain)" opacity=".34" style="mix-blend-mode:soft-light"/>
                 <g fill="#19150f" opacity=".62">
                   <ellipse cx="91" cy="61" rx="1.5" ry=".8"/><ellipse cx="169" cy="82" rx="1" ry="1.5"/><ellipse cx="245" cy="104" rx="1.6" ry="1"/>
                   <ellipse cx="64" cy="118" rx="1.3" ry=".7"/><ellipse cx="119" cy="101" rx=".8" ry="1"/><ellipse cx="207" cy="143" rx="1.7" ry="1.1"/>
@@ -131,15 +131,15 @@
                 <g fill="#2c2117" stroke="#886c4d" stroke-width=".35" stroke-opacity=".3">
                   <path d="M137 114l2-1 2 1-1 2-3-.5ZM75 196l2-1 3 1-1 2-3 .5-2-1ZM216 155l2-1 2 1-.5 2-3-1ZM148 258l3-1 2 2-2 1-3-1ZM222 302l1-2 3 1 .5 2-3 1Z"/>
                 </g>
-                <path d="M62 40L274 69L233 312L26 284Z" fill="none" stroke="#100e0a" stroke-width="9" opacity=".42"/>
-                <path d="M64 44L271 72" fill="none" stroke="#130f0b" stroke-width="5" opacity=".3"/>
+                <path d="M150 12L290 88L286 270L148 338L10 266L14 86Z" fill="none" stroke="#100e0a" stroke-width="9" opacity=".42"/>
+                <path d="M150 14L288 90" fill="none" stroke="#130f0b" stroke-width="5" opacity=".3"/>
               </g>
               <g fill="none" stroke-linecap="round">
-                <path d="M56 27L287 59M55 28L13 293M14 294L241 325" stroke="#e1ba89" stroke-width="1" opacity=".85"/>
-                <path d="M60 36L279 66L238 319M21 289L238 319" stroke="#523721" stroke-width="1.2" opacity=".9"/>
-                <path d="M66 32L276 61M53 49L17 282M33 292L223 318" stroke="#765235" stroke-width=".55" opacity=".5"/>
-                <path d="M97 33L95 41M208 48L206 56M94 305L96 299M180 317L182 311" stroke="#765034" stroke-width=".8"/>
-                <path d="M242 327L242 343" stroke="#c49560" stroke-width="1" opacity=".55"/>
+                <path d="M150 3L297 83M149 3L7 81L3 271L148 346" stroke="#e1ba89" stroke-width="1" opacity=".85"/>
+                <path d="M150 9L293 86L289 273L148 341L7 269L11 84Z" stroke="#523721" stroke-width="1.2" opacity=".9"/>
+                <path d="M153 7L292 83M10 94L6 264M12 274L142 341" stroke="#765235" stroke-width=".55" opacity=".5"/>
+                <path d="M150 2L150 12M298 82L290 88M294 276L286 270M148 347L148 338M2 272L10 266M6 80L14 86" stroke="#765034" stroke-width=".8"/>
+                <path d="M148 348L148 356" stroke="#c49560" stroke-width="1" opacity=".55"/>
               </g>
             </svg>
           </div>
@@ -152,7 +152,7 @@
         <strong id="pack-count" hidden>0 / 8</strong>
         <p id="pack-hint" class="pack-hint">8こ ならべて おとどけしよう</p>
         <div id="pack" class="pack" aria-label="収穫したいちご、8こまで"></div>
-        <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ5 / 5"><div id="life-hearts" class="life-hearts" aria-hidden="true"></div></div>
+        <div id="lives" class="lives" role="status" aria-live="polite" aria-label="残りライフ10 / 10"><div id="life-hearts" class="life-hearts" aria-hidden="true"></div></div>
         <button id="ship" class="primary ship" aria-label="あと 8こ あつめよう" disabled><span id="ship-label">あと 8こ</span></button>
         <div class="friend-note"><img src="./assets/ichigo-friend.svg" alt="" width="60" height="68"><p id="feedback" class="feedback" role="status" aria-live="polite">いっしょに<br>いちごを つもう！</p></div>
       </section>
@@ -163,7 +163,7 @@
     <p id="harvest-tip" role="status" aria-live="polite" hidden>いちごが あかくなるのを まってね</p>
   </div>
   <dialog id="guide-dialog" aria-labelledby="growth-heading">
-    <span class="eyebrow">いちごつみの コツ</span><h2 id="growth-heading">どうやって あそぶの？</h2>
+    <span class="eyebrow">さわこいちごゲームの コツ</span><h2 id="growth-heading">どうやって あそぶの？</h2>
     <div class="howto"><div><span>👆</span><b>いちごを タップ</b><small>ピンク・あか・こいあか</small></div><div><span>▦</span><b>8こで おとどけ</b><small>パックが いっぱいに！</small></div></div>
     <p class="dialog-note">あかい いちごは 150てん！<br>くさると ハートが ひとつ へるよ。</p>
     <details><summary>いちごの そだちかた</summary><div id="legend" class="legend"></div></details><button id="close-guide" class="primary">わかった！</button>
@@ -178,7 +178,19 @@
   </dialog>
   <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀</span><span class="eyebrow">のんびり いこう</span><h2 id="pause-title">ちょっと ひとやすみ</h2><p>いちごも いっしょに おやすみ。<br>そだつ じかんは とまっているよ。</p><button id="resume" class="primary">つづきを あそぶ →</button></dialog>
   <dialog id="restart-dialog" aria-labelledby="restart-title"><span class="dialog-emoji" aria-hidden="true">↻</span><h2 id="restart-title">はじめから あそぶ？</h2><p>いまの パックと ポイントが<br>ゼロに もどるよ。</p><div class="dialog-actions"><button id="cancel-restart" autofocus>もどる</button><button id="confirm-restart" class="primary">はじめから</button></div></dialog>
-  <dialog id="gameover-dialog" aria-labelledby="gameover-title"><div class="result-medal" aria-hidden="true">★</div><span class="eyebrow">きょうの のうえんの きろく</span><h2 id="gameover-title">がんばったね！</h2><p>ハートが なくなったので おしまい。<br>いちごの おせわ、ありがとう。</p><p id="gameover-result" class="gameover-result"></p><button id="play-again" class="primary">もういっかい あそぶ →</button></dialog>
+  <dialog id="gameover-dialog" aria-labelledby="gameover-title">
+    <div class="result-medal" aria-hidden="true">★</div>
+    <span class="eyebrow">きょうの のうえんの きろく</span>
+    <h2 id="gameover-title" tabindex="-1" autofocus>がんばったね！</h2>
+    <p>ハートが なくなったので おしまい。<br>いちごの おせわ、ありがとう。</p>
+    <p id="gameover-result" class="gameover-result"></p>
+    <p id="new-record" hidden>しんきろく！！</p>
+    <section class="high-score-panel" aria-labelledby="high-scores-heading">
+      <h3 id="high-scores-heading">さいこうとくてん ランキング</h3>
+      <ol id="high-scores"></ol>
+    </section>
+    <button id="play-again" class="primary">もういっかい あそぶ →</button>
+  </dialog>
   <script type="module" src="./game.js"></script>
 </body>
 </html>
