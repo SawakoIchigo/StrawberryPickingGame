@@ -492,9 +492,6 @@ h1>span {
 .berry .sprite[data-stage="1"] {
   transform:translateY(-3px) rotate(var(--berry-angle,0deg)) scale(var(--berry-size,1));
 }
-.berry.rotten .sprite {
-  opacity:.85;
-}
 .berry.ripe::before,.berry.ripe::after {
   content:"";
   position:absolute;
@@ -567,6 +564,12 @@ h1>span {
 }
 .sprites-ready .sprite[data-stage] {
   filter:none;
+}
+.berry.rotten .sprite {
+  opacity:1;
+  filter:grayscale(.75) brightness(1.25)
+    drop-shadow(1px 0 0 #fff3d8) drop-shadow(-1px 0 0 #fff3d8)
+    drop-shadow(0 1px 0 #fff3d8) drop-shadow(0 -1px 0 #fff3d8);
 }
 /* The planter and the live plants share the same fitted coordinate system. */
 .planter {
@@ -2197,7 +2200,7 @@ summary {
 .topbar { position:relative; z-index:6; }
 .topbar .controls { position:relative; z-index:1; }
 .score-stat strong { display:inline-block; pointer-events:none; transform:none; transform-origin:right top; transition:transform .16s ease-out; }
-.score-stat strong.is-counting { transform:translateY(44px) scale(2.5); text-shadow:0 1px 2px #fff9e9; }
+.score-stat strong.is-counting { transform:translateY(44px) scale(2); text-shadow:0 1px 2px #fff9e9; }
 @media(max-width:359px) {
-  .score-stat strong.is-counting { transform:translate(5px,44px) scale(2.5); }
+  .score-stat strong.is-counting { transform:translate(5px,44px) scale(2); }
 }
