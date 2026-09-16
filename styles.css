@@ -1745,7 +1745,7 @@ summary {
   display:none;
 }
 .topbar h1 {
-  font-size:20px;
+  font-size:22px;
   white-space:nowrap;
 }
 .topbar .controls {
@@ -1753,15 +1753,16 @@ summary {
   gap:2px;
 }
 .topbar .controls button {
-  width:29px;
+  width:31px;
   min-width:0;
   min-height:44px;
   padding:0;
   justify-content:center;
 }
 .topbar .controls button>span {
-  width:25px;
-  height:25px;
+  width:27px;
+  height:27px;
+  font-size:18px;
 }
 .topbar .stats {
   grid-area:stats;
@@ -1791,12 +1792,24 @@ summary {
   white-space:nowrap;
 }
 .topbar .stats strong {
-  font-size:28px;
+  font-size:32px;
   line-height:1.2;
   white-space:nowrap;
 }
 .topbar .stats small {
+  font-size:13px;
+}
+.farm-caption {
+  min-height:46px;
+}
+.farm-sign {
+  flex:none;
+  font-size:12px;
+}
+.farm-caption>span:last-child {
+  min-width:0;
   font-size:11px;
+  line-height:1.35;
 }
 .workbench {
   grid-template-columns:minmax(0,1fr) 110px;
@@ -1814,6 +1827,7 @@ summary {
 .workbench .pack-slot {
   height:auto;
   min-height:44px;
+  font-size:16px;
 }
 .workbench .pack-slot .sprite {
   width:min(42px,100%);
@@ -1849,7 +1863,7 @@ summary {
   height:auto;
   min-height:44px;
   padding:5px 3px;
-  font-size:10px;
+  font-size:13px;
 }
 .workbench .friend-note {
   grid-column:2;
@@ -1865,7 +1879,8 @@ summary {
 }
 .workbench .feedback {
   min-width:0;
-  font-size:8px;
+  font-size:11px;
+  line-height:1.4;
   overflow-wrap:anywhere;
 }
 @media(max-width:359px), (min-width:760px) and (max-height:638.22px) {
@@ -1881,6 +1896,12 @@ summary {
   }
   .workbench .pack-slot {
     min-height:40px;
+  }
+  .workbench .ship {
+    font-size:12px;
+  }
+  .workbench .feedback {
+    font-size:10px;
   }
 }
 @media(min-width:760px) and (max-height:567px) {
@@ -1904,7 +1925,9 @@ summary {
     height:12px;
   }
   .workbench .ship {
-    font-size:9px;
+    font-size:10px;
+    padding-left:2px;
+    padding-right:2px;
     gap:2px;
   }
   .workbench .friend-note img {
@@ -1912,29 +1935,62 @@ summary {
     height:21px;
   }
   .workbench .feedback {
-    font-size:7px;
+    font-size:9px;
   }
 }
 @media(max-width:410px), (min-width:760px) and (max-height:729px) {
   .topbar {
-    column-gap:4px;
+    column-gap:2px;
   }
   .topbar h1 {
-    font-size:16px;
+    font-size:18px;
   }
   .topbar .controls button {
-    width:25px;
+    width:23px;
   }
   .topbar .controls button>span {
-    width:23px;
-    height:23px;
+    width:24px;
+    height:24px;
   }
   .topbar .stats {
-    width:138px;
+    width:135px;
     gap:6px;
   }
   .topbar .stats span:not(.stat-icon) {
     font-size:9px;
+  }
+  .topbar .stats small {
+    font-size:12px;
+  }
+  .topbar .stats strong {
+    font-size:28px;
+  }
+}
+@media(min-width:760px) and (max-height:567px) {
+  .topbar {
+    column-gap:2px;
+  }
+  .topbar h1 {
+    font-size:15px;
+  }
+  .topbar .controls {
+    gap:0;
+  }
+  .topbar .controls button {
+    width:23px;
+    min-height:34px;
+  }
+  .topbar .controls button>span {
+    width:22px;
+    height:22px;
+    font-size:16px;
+  }
+  .topbar .stats {
+    width:124px;
+    gap:4px;
+  }
+  .topbar .stats span:not(.stat-icon) {
+    font-size:8px;
   }
   .topbar .stats small {
     font-size:11px;
@@ -1943,44 +1999,13 @@ summary {
     font-size:26px;
   }
 }
-@media(min-width:760px) and (max-height:567px) {
-  .topbar {
-    column-gap:3px;
-  }
-  .topbar h1 {
-    font-size:14px;
-  }
-  .topbar .controls {
-    gap:0;
-  }
-  .topbar .controls button {
-    width:22px;
-    min-height:34px;
-  }
-  .topbar .controls button>span {
-    width:20px;
-    height:20px;
-  }
-  .topbar .stats {
-    width:120px;
-    gap:4px;
-  }
-  .topbar .stats span:not(.stat-icon) {
-    font-size:8px;
-  }
-  .topbar .stats small {
-    font-size:10px;
-  }
-  .topbar .stats strong {
-    font-size:24px;
-  }
-}
 @media(min-width:760px) and (max-height:500px) {
   .topbar {
-    column-gap:2px;
+    column-gap:1px;
   }
   .topbar h1 {
-    font-size:11px;
+    font-size:12px;
+    letter-spacing:-.04em;
   }
   .topbar .controls button {
     width:19px;
@@ -1989,19 +2014,19 @@ summary {
   .topbar .controls button>span {
     width:18px;
     height:18px;
-    font-size:11px;
+    font-size:13px;
   }
   .topbar .stats {
-    width:100px;
+    width:102px;
   }
   .topbar .stats span:not(.stat-icon) {
     font-size:7.5px;
   }
   .topbar .stats small {
-    font-size:9px;
+    font-size:10px;
   }
   .topbar .stats strong {
-    font-size:21px;
+    font-size:22px;
   }
 }
 @media(min-width:480px) and (max-width:759px), (min-width:760px) and (min-height:854px) {
@@ -2012,7 +2037,10 @@ summary {
   }
   .topbar .brand .eyebrow {
     display:block;
-    font-size:8px;
+    font-size:10px;
+  }
+  .topbar h1 {
+    font-size:24px;
   }
 }
 @media(prefers-reduced-motion:reduce) {
