@@ -176,13 +176,22 @@ export function placeFruit(layout, berryId, slot) {
 
 // Display-only score interpolation: no timers and no model mutations.
 export function stepScoreDisplay(state, target, now, immediate = false) {
-  if (immediate) return { value: target, at: now, active: false };
-  if (state.value === target) return { value: target, at: now, active: false };
-  // Start a fresh visible interval even after a slow frame or idle tab.
-  if (!state.active) return { value: state.value, at: now, active: true };
-  // Never skip intermediate tens to catch up after a delayed frame.
-  const steps = now - state.at >= 70 ? 1 : 0;
-  const difference = target - state.value;
-  const value = state.value + Math.sign(difference) * Math.min(Math.abs(difference), steps * 10);
-  return { value, at: steps ? now : state.at, active: value !== target };
+  if (immediate) return { value: target, target, settled: target, changes: [], active: false };
+  let settled = state.settled ?? state.value;
+  const previousTarget = state.target ?? state.value;
+  const changes = [...(state.changes ?? [])];
+  if (target !== previousTarget) changes.push({ delta: target - previousTarget, at: now });
+  let moving = 0;
+  const pending = [];
+  for (const change of changes) {
+    const progress = Math.max(0, (now - change.at) / 500);
+    if (progress >= 1) {
+      settled += change.delta;
+    } else {
+      // Each gain/loss has its own deadline: a later change cannot prolong it.
+      moving += Math.sign(change.delta) * Math.floor(Math.abs(change.delta) * progress / 10) * 10;
+      pending.push(change);
+    }
+  }
+  return { value: settled + moving, target, settled, changes: pending, active: pending.length > 0 };
 }

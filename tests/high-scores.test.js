@@ -25,14 +25,14 @@ test('missing, damaged, oversized and wrong-shaped storage safely start an empty
   for (const raw of [null, '{broken', '{}', '"text"', 'null', ' '.repeat(65537), '["100",null,1.5]']) {
     const store = createHighScoreStore(() => storage(raw));
     assert.deepEqual(store.getScores(), []);
-    assert.deepEqual(store.record({}, -2500), { scores: [-2500], rank: 1, newRecord: true });
+    assert.deepEqual(store.record({}, -2500), { scores: [-2500], rank: 1, newRecord: false });
   }
 });
 
 test('first and subsequent signed scores survive recreating the store', () => {
   const disk = storage();
   const first = createHighScoreStore(() => disk);
-  assert.equal(first.record({}, -2500).newRecord, true);
+  assert.equal(first.record({}, -2500).newRecord, false);
   const reloaded = createHighScoreStore(() => disk);
   assert.deepEqual(reloaded.getScores(), [-2500]);
   assert.equal(reloaded.record({}, 0).rank, 1);
@@ -48,7 +48,7 @@ test('a full ranking changes only when the new play fits in its first five posit
   assert.equal(store.record({}, 99).newRecord, false);
   assert.equal(store.record({}, 100).newRecord, false);
   assert.equal(disk.writes.length, 0);
-  assert.deepEqual(store.record({}, 300), { scores: [500, 400, 300, 300, 200], rank: 4, newRecord: true });
+  assert.deepEqual(store.record({}, 300), { scores: [500, 400, 300, 300, 200], rank: 4, newRecord: false });
   assert.equal(disk.writes.length, 1);
 });
 
@@ -56,6 +56,18 @@ test('equal scores from separate plays fill available places, but never exceed f
   const store = createHighScoreStore(() => storage());
   for (let i = 1; i <= 5; i++) assert.equal(store.record({}, 0).rank, i);
   assert.deepEqual(store.record({}, 0), { scores: [0, 0, 0, 0, 0], rank: null, newRecord: false });
+});
+
+test('only a positive score strictly above the previous best earns the new-record badge', () => {
+  const store = createHighScoreStore(() => storage());
+  for (const score of [-2500, -3000, -500, 0]) {
+    assert.equal(store.record({}, score).newRecord, false, `${score} must not be celebrated`);
+  }
+  assert.equal(store.record({}, 50).newRecord, true);
+  assert.equal(store.record({}, 50).newRecord, false, 'a tie is not an improvement');
+  assert.equal(store.record({}, 25).newRecord, false, 'a lower ranking entry is not a best score');
+  assert.equal(store.record({}, 150).newRecord, true);
+  assert.deepEqual(store.getScores(), [150, 50, 50, 25, 0]);
 });
 
 test('one game is recorded once even when result rendering repeats; a new game can record', () => {

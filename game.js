@@ -98,14 +98,12 @@ function removeLater(element, milliseconds) {
     effectTimers.delete(old);
   }
 }
-function flyToPack(rect, stage, slotIndex) {
+function celebrateHarvest(rect) {
   if (!rect) return;
-  const destination = $('pack').children[slotIndex]?.getBoundingClientRect();
-  if (!destination) return;
   const appRect = document.querySelector('.app').getBoundingClientRect();
   const centerX = rect.left + rect.width / 2 - appRect.left;
   const centerY = rect.top + rect.height / 2 - appRect.top;
-  const berrySize = rect.width * 36 / FIELD.hitSize;
+  const berrySize = rect.width * 40 / FIELD.hitSize;
   const burst = document.createElement('span');
   burst.className = 'harvest-burst';
   burst.setAttribute('aria-hidden', 'true');
@@ -123,35 +121,38 @@ function flyToPack(rect, stage, slotIndex) {
     spark.style.setProperty('--spark-delay', `${i % 3 * .025}s`);
     burst.append(spark);
   }
-  const flight = document.createElement('span');
-  flight.className = 'harvest-flight';
-  flight.setAttribute('aria-hidden', 'true');
-  flight.append(sprite(stage + 5, stage));
-  flight.style.width = `${berrySize}px`;
-  flight.style.height = `${berrySize}px`;
-  flight.style.left = `${centerX - berrySize / 2}px`;
-  flight.style.top = `${centerY - berrySize / 2}px`;
-  flight.style.setProperty('--fly-x', `${destination.left + destination.width / 2 - rect.left - rect.width / 2}px`);
-  flight.style.setProperty('--fly-y', `${destination.top + destination.height / 2 - rect.top - rect.height / 2}px`);
-  // One visual berry pops at the harvest point before continuing to the pack.
-  $('point-effects').append(burst, flight);
+  $('point-effects').append(burst);
   removeLater(burst, 780);
-  removeLater(flight, 950);
 }
 function celebrateDelivery() {
   const celebration = document.createElement('div');
   celebration.className = 'celebration';
   celebration.setAttribute('aria-hidden', 'true');
-  for (let i = 0; i < 22; i++) {
-    const piece = document.createElement('i');
-    piece.style.setProperty('--x', `${15 + Math.random() * 70}%`);
-    piece.style.setProperty('--y', `${20 + Math.random() * 20}%`);
-    piece.style.setProperty('--color', ['#e76973', '#ecc458', '#79a475', '#faf4d5'][i % 4]);
-    piece.style.setProperty('--delay', `${Math.random() * .25}s`);
-    celebration.append(piece);
+  const { width, height } = $('point-effects').getBoundingClientRect();
+  const colors = ['#f34b79', '#ffd34e', '#56b777', '#58cbea', '#c688e9'];
+  for (const fromLeft of [true, false]) {
+    const count = 28 + Math.floor(Math.random() * 13);
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('i');
+      const distance = width * (.2 + Math.random() * .65) * (fromLeft ? 1 : -1);
+      const rise = height * (.4 + Math.random() * .38);
+      const pieceWidth = 6 + Math.random() * 5;
+      piece.style.width = `${pieceWidth}px`;
+      piece.style.height = `${8 + Math.random() * 10}px`;
+      piece.style.borderRadius = Math.random() < .25 ? '50%' : '2px';
+      piece.style.setProperty('--origin-x', fromLeft ? '0px' : `calc(100% - ${pieceWidth}px)`);
+      piece.style.setProperty('--travel-x', `${distance}px`);
+      piece.style.setProperty('--rise', `${-rise}px`);
+      piece.style.setProperty('--fall-y', `${height * (.08 + Math.random() * .14)}px`);
+      piece.style.setProperty('--spin', `${(fromLeft ? 1 : -1) * (360 + Math.random() * 540)}deg`);
+      piece.style.setProperty('--color', colors[Math.floor(Math.random() * colors.length)]);
+      piece.style.setProperty('--duration', `${1.6 + Math.random() * .5}s`);
+      piece.style.setProperty('--delay', `${Math.random() * .1}s`);
+      celebration.append(piece);
+    }
   }
   $('point-effects').append(celebration);
-  removeLater(celebration, 1900);
+  removeLater(celebration, 2300);
 }
 function sprite(index, stage) {
   const element = document.createElement('span');
@@ -247,7 +248,7 @@ function harvest(plantId, berryId) {
   showPoints(berryElements.get(berryId), points);
   announce(game.pack.length === CONFIG.packSize ? '8こ そろった！ おとどけしよう！' : `${praise[(game.pack.length - 1) % praise.length]} あと ${CONFIG.packSize - game.pack.length}こ`);
   render();
-  flyToPack(rect, stage, game.pack.length - 1);
+  celebrateHarvest(rect);
   if (hadFocus) (game.pack.length === CONFIG.packSize ? $('ship') : document.querySelector('.berry:not(:disabled)') ?? $('pause')).focus({ preventScroll: true });
   return true;
 }

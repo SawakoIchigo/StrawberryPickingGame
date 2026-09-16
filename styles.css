@@ -712,14 +712,16 @@ h2 {
 .workbench.is-full .ship {
   background:#dc4658;
   color:white;
-  animation:ship-ready 1.5s ease-in-out infinite;
+}
+:root[data-game-status="running"] .workbench.is-full .ship:enabled:not(.is-delivered) {
+  animation:ship-ready 1.4s ease-in-out infinite;
 }
 :root[data-game-status="running"] .workbench.is-full .ship:enabled:not(.is-delivered)::before,
 :root[data-game-status="running"] .workbench.is-full .ship:enabled:not(.is-delivered)::after {
   content:"";
   position:absolute;
   inset:0;
-  border:2px solid #32935a;
+  border:2px solid #f06caa;
   border-radius:inherit;
   opacity:0;
   pointer-events:none;
@@ -806,17 +808,6 @@ h2 {
 .point-popup.negative {
   color:#76657b;
 }
-.harvest-flight {
-  position:absolute;
-  z-index:13;
-  pointer-events:none;
-  filter:drop-shadow(0 0 2px #fff5d9);
-  animation:berry-flight .9s cubic-bezier(.3,.1,.5,1) both;
-}
-.harvest-flight .sprite {
-  width:100%;
-  height:100%;
-}
 .harvest-burst {
   position:absolute;
   width:0;
@@ -874,11 +865,11 @@ h2 {
   position:absolute;
   width:9px;
   height:15px;
-  left:var(--x);
-  top:var(--y);
+  left:var(--origin-x);
+  bottom:0;
   background:var(--color);
   border-radius:3px;
-  animation:confetti-fall 1.5s ease-out both;
+  animation:confetti-burst var(--duration) linear both;
   animation-delay:var(--delay);
 }
 #harvest-tip {
@@ -1159,8 +1150,20 @@ summary {
   }
 }
 @keyframes ship-ready {
+  0%,60%,100% {
+    transform:rotate(0) scale(1);
+    box-shadow:0 5px 0 #b53548;
+  }
+  10%,30% {
+    transform:rotate(-9.5deg);
+    box-shadow:0 5px 0 #b53548,0 0 12px 5px #f06caa66;
+  }
+  20%,40% {
+    transform:rotate(9.5deg);
+    box-shadow:0 5px 0 #b53548,0 0 12px 5px #f06caa66;
+  }
   50% {
-    box-shadow:0 5px 0 #b53548,0 0 0 5px #eb6f6226;
+    transform:rotate(-5deg);
   }
 }
 @keyframes ship-ripple {
@@ -1173,25 +1176,6 @@ summary {
   }
   100% {
     inset:-4px;
-    opacity:0;
-  }
-}
-@keyframes berry-flight {
-  0% {
-    transform:translate(0,0) scale(1);
-    opacity:1;
-  }
-  9% {
-    transform:translate(0,0) scale(.84,1.06);
-  }
-  28% {
-    transform:translate(0,0) scale(1.25,1.1);
-  }
-  80% {
-    opacity:1;
-  }
-  100% {
-    transform:translate(var(--fly-x),var(--fly-y)) scale(.5);
     opacity:0;
   }
 }
@@ -1221,16 +1205,21 @@ summary {
     opacity:0;
   }
 }
-@keyframes confetti-fall {
+@keyframes confetti-burst {
   0% {
-    transform:translateY(-20px) rotate(0);
-    opacity:0;
+    transform:translate(0,0) rotate(0) scale(.7);
+    opacity:1;
+    animation-timing-function:cubic-bezier(.12,.65,.3,1);
   }
-  15% {
+  38% {
+    transform:translate(calc(var(--travel-x) * .62),var(--rise)) rotate(calc(var(--spin) * .45)) scale(1);
+    animation-timing-function:cubic-bezier(.5,0,.85,.45);
+  }
+  75% {
     opacity:1;
   }
   100% {
-    transform:translateY(180px) rotate(240deg);
+    transform:translate(var(--travel-x),var(--fall-y)) rotate(var(--spin)) scale(.85);
     opacity:0;
   }
 }
@@ -2219,8 +2208,13 @@ summary {
 }
 
 /* Seven plants share the hexagonal soil; all fruit targets stay disjoint. */
+.app { gap:2px; }
+.game-layout { gap:4px; }
+.farm-panel { margin-inline:-8px; }
+.farm-viewport { margin:0 2px 1px; }
+.workbench .ship { margin-block:3px; }
 .berry-slot, .berry { width:30px; height:30px; min-height:30px; }
-.berry .sprite { width:36px; height:36px; font-size:26px; }
+.berry .sprite { width:40px; height:40px; font-size:29px; }
 .workbench .life-hearts { display:grid; grid-template-columns:repeat(5,auto); justify-content:space-between; row-gap:1px; }
 .sprite[data-stage="5"], .sprites-ready .sprite[data-stage="5"] { filter:brightness(.78) saturate(1.12) contrast(1.06); }
 

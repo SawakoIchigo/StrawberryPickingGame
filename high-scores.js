@@ -39,14 +39,17 @@ export function createHighScoreStore(getStorage = () => globalThis.localStorage)
     record(game, score) {
       if (completedGames.has(game)) return completedGames.get(game);
       let rank = null;
+      let newRecord = false;
       if (Number.isSafeInteger(score)) {
         refresh();
+        const previousBest = Math.max(0, scores[0] ?? 0);
         // Existing equal scores stay first: a tie below the fifth entry is not new.
         let index = scores.findIndex(previous => score > previous);
         if (index < 0) index = scores.length;
         if (index < 5) {
           scores = [...scores.slice(0, index), score, ...scores.slice(index)].slice(0, 5);
           rank = index + 1;
+          newRecord = score > previousBest;
           try {
             getStorage()?.setItem(HIGH_SCORE_KEY, JSON.stringify(scores));
           } catch {
@@ -54,7 +57,7 @@ export function createHighScoreStore(getStorage = () => globalThis.localStorage)
           }
         }
       }
-      const result = Object.freeze({ scores: Object.freeze([...scores]), rank, newRecord: rank !== null });
+      const result = Object.freeze({ scores: Object.freeze([...scores]), rank, newRecord });
       completedGames.set(game, result);
       return result;
     },

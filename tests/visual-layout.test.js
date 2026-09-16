@@ -245,29 +245,45 @@ test('plant births keep the center first and shuffle each outer position exactly
   checkPositions(fruit);
 });
 
-test('score display visits every ten toward the latest target and clears its active state', () => {
-  let state = { value: 100, at: 0, active: false };
-  state = stepScoreDisplay(state, 150, 1000);
-  assert.deepEqual(state, { value: 100, at: 1000, active: true });
-  for (let index = 1; index <= 5; index++) {
-    state = stepScoreDisplay(state, 150, 1000 + index * 70);
-    assert.equal(state.value, 100 + index * 10);
-    assert.equal(state.active, index !== 5);
+test('each gain or loss finishes in exactly 500ms regardless of its size', () => {
+  for (const delta of [50, 150, -500, -1000, 999999]) {
+    let state = stepScoreDisplay({ value: 100, active: false }, 100 + delta, 1000);
+    assert.equal(state.value, 100);
+    assert.equal(state.active, true);
+    state = stepScoreDisplay(state, 100 + delta, 1250);
+    assert.equal(state.value, 100 + Math.sign(delta) * Math.floor(Math.abs(delta) / 20) * 10);
+    state = stepScoreDisplay(state, 100 + delta, 1499);
+    assert.equal(state.active, true);
+    state = stepScoreDisplay(state, 100 + delta, 1500);
+    assert.equal(state.value, 100 + delta);
+    assert.equal(state.active, false);
+    assert.equal(state.changes.length, 0);
   }
-  state = stepScoreDisplay(state, 300, 1400);
-  state = stepScoreDisplay(state, 300, 1470);
-  assert.equal(state.value, 160);
-  state = stepScoreDisplay(state, -340, 1540);
-  assert.equal(state.value, 150);
-  state = stepScoreDisplay(state, -340, 3000);
-  assert.equal(state.value, 140, 'slow frames do not jump over the intermediate tens');
-  for (let index = 1; index <= 48; index++) state = stepScoreDisplay(state, -340, 3000 + index * 70);
-  assert.equal(state.value, -340);
-  assert.equal(state.active, false);
-  state = stepScoreDisplay(state, 50, 6400);
+});
+
+test('overlapping gains and losses retain independent half-second deadlines', () => {
+  let state = stepScoreDisplay({ value: 100, active: false }, 150, 1000);
+  state = stepScoreDisplay(state, -350, 1200);
+  assert.equal(state.value, 120);
+  state = stepScoreDisplay(state, -350, 1500);
+  assert.equal(state.settled, 150, 'the first +50 is already fully applied');
+  assert.equal(state.value, -150, 'only the later loss is still counting');
+  assert.equal(state.changes.length, 1);
   assert.equal(state.active, true);
-  assert.deepEqual(stepScoreDisplay(state, 0, 6450, true), { value: 0, at: 6450, active: false });
-  assert.equal(stepScoreDisplay(state, 999999, 6450, true).value, 999999);
+  state = stepScoreDisplay(state, -350, 1700);
+  assert.equal(state.value, -350);
+  assert.equal(state.active, false);
+});
+
+test('slow frames finish expired changes and a reset clears every pending change', () => {
+  let state = stepScoreDisplay({ value: 0, active: false }, 150, 1000);
+  state = stepScoreDisplay(state, 150, 4000);
+  assert.equal(state.value, 150);
+  assert.equal(state.active, false);
+  state = stepScoreDisplay(state, -350, 4050);
+  state = stepScoreDisplay(state, 0, 4100, true);
+  assert.deepEqual(state, { value: 0, target: 0, settled: 0, changes: [], active: false });
+  assert.deepEqual(stepScoreDisplay(state, 0, 4600), state);
 });
 
 test('harvesting a pink or dark-red berry immediately awards 50 while the display visits each ten', () => {
@@ -281,7 +297,7 @@ test('harvesting a pink or dark-red berry immediately awards 50 while the displa
     assert.equal(pickBerry(game, 1, berry.id), true);
     assert.equal(game.score, before + 50);
     const sampled = [display.value];
-    for (let now = 1000; now <= 1400; now += 10) {
+    for (let now = 1000; now <= 1500; now += 10) {
       display = stepScoreDisplay(display, game.score, now);
       if (sampled.at(-1) !== display.value) sampled.push(display.value);
     }
