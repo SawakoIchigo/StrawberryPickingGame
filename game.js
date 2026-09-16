@@ -21,6 +21,57 @@ const plantElements = new Map();
 const berryElements = new Map();
 const berryPoints = CONFIG.berryPoints;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const rainParticles = Array.from(document.querySelectorAll('.rain-drop'), element => ({ element }));
+let rainWidth = 0;
+let rainHeight = 0;
+let rainWasActive = false;
+let rainWasReduced = reducedMotion.matches;
+
+// Visual randomness never consumes either of the game's saved random streams.
+function seedRainParticle(particle, now, initial) {
+  const gentle = reducedMotion.matches;
+  particle.duration = gentle ? 2.6 + Math.random() * 1.4 : 1.1 + Math.random() * 1.25;
+  particle.start = initial
+    ? now - Math.random() * particle.duration
+    : now + .04 + Math.random() * (gentle ? .65 : .4);
+  particle.x = .025 + Math.random() * .91;
+  particle.drift = .025 + Math.random() * .065;
+  particle.size = 9 + Math.random() * 3;
+  particle.element.style.width = `${particle.size}px`;
+  particle.element.style.height = `${particle.size * 1.75}px`;
+  particle.element.style.opacity = String(.85 + Math.random() * .15);
+}
+
+function renderRain() {
+  if (!game.rain.active) {
+    rainWasActive = false;
+    return;
+  }
+  const gentle = reducedMotion.matches;
+  const initialize = !rainWasActive || rainWasReduced !== gentle;
+  if (!initialize && game.status !== 'running') return;
+  rainWasActive = true;
+  rainWasReduced = gentle;
+  const distance = rainHeight + 64;
+  for (let index = 0; index < rainParticles.length; index++) {
+    const particle = rainParticles[index];
+    if (gentle && index % 2 === 1) {
+      particle.element.style.visibility = 'hidden';
+      continue;
+    }
+    if (initialize) seedRainParticle(particle, game.elapsed, true);
+    if (game.elapsed >= particle.start + particle.duration) {
+      seedRainParticle(particle, game.elapsed, false);
+    }
+    const progress = (game.elapsed - particle.start) / particle.duration;
+    particle.element.style.visibility = progress < 0 ? 'hidden' : 'visible';
+    if (progress < 0) continue;
+    const startX = particle.x * Math.max(0, rainWidth - particle.size);
+    const drift = Math.min(distance * particle.drift, Math.max(0, rainWidth - particle.size - startX));
+    const angle = -Math.atan2(drift, distance) * 180 / Math.PI;
+    particle.element.style.transform = `translate3d(${startX + drift * progress}px,${distance * progress}px,0) rotate(${angle}deg)`;
+  }
+}
 let hasShownHarvestTip = false;
 let harvestTipTimer;
 let guideWasRunning = false;
@@ -129,7 +180,8 @@ function fitFarm() {
   const viewport = document.querySelector('.farm-viewport');
   const scale = Math.min(viewport.clientWidth / FIELD.width, viewport.clientHeight / FIELD.height);
   viewport.style.setProperty('--farm-scale', scale);
-  viewport.style.setProperty('--rain-distance', `${viewport.clientHeight + 64}px`);
+  rainWidth = viewport.clientWidth;
+  rainHeight = viewport.clientHeight;
   $('farm').style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 new ResizeObserver(fitFarm).observe(document.querySelector('.farm-viewport'));
@@ -410,6 +462,7 @@ function frame(now) {
   previousFrame = now;
   if (now - renderAt >= 100) { render(); renderAt = now; }
   renderBreeze();
+  renderRain();
   requestAnimationFrame(frame);
 }
 render();
