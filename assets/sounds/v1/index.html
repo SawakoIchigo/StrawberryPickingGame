@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#fff8ed">
+  <title>いちごの音えらび｜さわこいちご</title>
+  <style>
+    :root { color-scheme:light; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; color:#49382f; background:#fff8ed; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    main { max-width:860px; margin:auto; padding:40px 24px 48px; }
+    .eyebrow { color:#9b354c; font-weight:750; letter-spacing:.08em; font-size:.8rem; }
+    h1 { font-size:clamp(1.8rem,6vw,2.7rem); line-height:1.25; margin:12px 0; }
+    .intro { line-height:1.8; max-width:600px; color:#6d594d; }
+    .controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; padding:18px 20px; margin:24px 0 8px; background:#fff; border:1px solid #ecdccc; border-radius:18px; }
+    .volume { display:flex; align-items:center; flex:1 1 240px; gap:12px; }
+    label { font-weight:700; white-space:nowrap; }
+    input { min-width:70px; width:100%; accent-color:#c54461; height:30px; }
+    output { font-variant-numeric:tabular-nums; min-width:3.5em; text-align:right; }
+    button,a { -webkit-tap-highlight-color:transparent; }
+    button { font:inherit; font-weight:750; cursor:pointer; border:0; border-radius:12px; min-height:46px; padding:10px 18px; }
+    button:focus-visible,a:focus-visible,input:focus-visible { outline:3px solid #237251; outline-offset:4px; }
+    .stop { color:#705341; background:#f6ebde; }
+    #status { color:#705341; min-height:3em; line-height:1.5; margin:10px 4px 16px; font-size:.88rem; }
+    section { margin:26px 0; }
+    h2 { display:flex; align-items:center; gap:12px; font-size:1.25rem; margin:0 0 12px; }
+    h2 span { display:grid; place-items:center; border-radius:50%; width:30px; height:30px; font-size:.8rem; background:#e5efdf; color:#376944; }
+    .choices { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    article { border:1px solid #ead6c7; background:#fffefa; border-radius:18px; padding:20px; box-shadow:0 3px 0 #efdfce; }
+    .tag { color:#9b354c; font-size:.78rem; font-weight:800; letter-spacing:.06em; }
+    h3 { margin:8px 0; font-size:1.1rem; }
+    article p { font-size:.9rem; color:#705f52; line-height:1.7; min-height:3.4em; margin:0 0 18px; }
+    .actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+    .play { background:#c54461; color:white; min-width:112px; box-shadow:0 3px 0 #96364b; }
+    .play:hover { background:#ad3753; }
+    .play[aria-pressed="true"] { background:#317452; box-shadow:0 3px 0 #23523c; }
+    a { color:#88503c; text-underline-offset:4px; font-size:.85rem; padding:12px 0; }
+    footer { margin-top:32px; color:#756254; font-size:.85rem; line-height:1.8; }
+    @media(max-width:560px) { main { padding:24px 16px 36px; } .choices { grid-template-columns:1fr; } article p { min-height:0; } .controls { padding:14px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">さわこいちご · SOUND SAMPLES</div>
+    <h1>いちごの音えらび</h1>
+    <p class="intro">つむ、ととのう、おとどけする。<br>ゲームの3つの場面に、2種類ずつ音をつくりました。<br>好きなボタンを押して、聴きくらべてみてください。</p>
+  </header>
+  <div class="controls">
+    <div class="volume"><label for="volume">音量</label><input id="volume" type="range" min="0" max="100" value="55"><output id="volume-value" for="volume">55%</output></div>
+    <button class="stop" id="stop" type="button">音をとめる</button>
+  </div>
+  <p id="status" role="status" aria-live="polite">ボタンを押すと音が出ます。音量は小さめからお試しください。</p>
+  <section aria-labelledby="harvest-heading">
+    <h2 id="harvest-heading"><span>01</span>いちごを収穫</h2>
+    <div class="choices">
+      <article><div class="tag">収穫 A · 0.18秒</div><h3>まるいしずく</h3><p>ふっくら弾んで、すっと落ち着く水滴の音。何度もつむ場面に。</p><div class="actions"><button class="play" type="button" data-sound="harvest-a" aria-label="収穫A まるいしずくを再生" aria-pressed="false">▶ きく</button><a href="harvest-a.wav" download>WAVを保存</a></div></article>
+      <article><div class="tag">収穫 B · 0.22秒</div><h3>木の実はじける</h3><p>小さな木の実を弾くような、明るく軽い音。短い余韻を添えて。</p><div class="actions"><button class="play" type="button" data-sound="harvest-b" aria-label="収穫B 木の実はじけるを再生" aria-pressed="false">▶ きく</button><a href="harvest-b.wav" download>WAVを保存</a></div></article>
+    </div>
+  </section>
+  <section aria-labelledby="full-heading">
+    <h2 id="full-heading"><span>02</span>パックがいっぱい</h2>
+    <div class="choices">
+      <article><div class="tag">満杯 A · 0.64秒</div><h3>みっつのベル</h3><p>3つの音が階段をのぼる、明るいベル。「そろったよ」の合図に。</p><div class="actions"><button class="play" type="button" data-sound="full-a" aria-label="満杯A みっつのベルを再生" aria-pressed="false">▶ きく</button><a href="full-a.wav" download>WAVを保存</a></div></article>
+      <article><div class="tag">満杯 B · 0.64秒</div><h3>きらめく合図</h3><p>軽やかに2音、ひと呼吸おいてもう1音。澄んだ音の小さなきらめき。</p><div class="actions"><button class="play" type="button" data-sound="full-b" aria-label="満杯B きらめく合図を再生" aria-pressed="false">▶ きく</button><a href="full-b.wav" download>WAVを保存</a></div></article>
+    </div>
+  </section>
+  <section aria-labelledby="ship-heading">
+    <h2 id="ship-heading"><span>03</span>パックをおとどけ</h2>
+    <div class="choices">
+      <article><div class="tag">出荷 A · 1.16秒</div><h3>おとどけファンファーレ</h3><p>4つの音が上がって、最後はふわり。「できた！」を祝う短いメロディー。</p><div class="actions"><button class="play" type="button" data-sound="ship-a" aria-label="出荷A おとどけファンファーレを再生" aria-pressed="false">▶ きく</button><a href="ship-a.wav" download>WAVを保存</a></div></article>
+      <article><div class="tag">出荷 B · 1.22秒</div><h3>あたたかなごほうび</h3><p>やわらかな和音の上を、音の粒が跳ねます。ほっとするお祝いの音。</p><div class="actions"><button class="play" type="button" data-sound="ship-b" aria-label="出荷B あたたかなごほうびを再生" aria-pressed="false">▶ きく</button><a href="ship-b.wav" download>WAVを保存</a></div></article>
+    </div>
+  </section>
+  <footer>人の声を使わずにつくった、ゲーム用の効果音です。<br>ここは試聴ページです。ゲームへの組み込みは、音を選んだあとに。<br><a href="../../../index.html">いちごゲームへ</a></footer>
+</main>
+<script>
+  const volume = document.getElementById('volume');
+  const status = document.getElementById('status');
+  let active = null;
+  function stop() {
+    if (!active) return;
+    const previous = active;
+    active = null;
+    previous.audio.pause();
+    previous.audio.removeAttribute('src');
+    previous.audio.load();
+    previous.button.setAttribute('aria-pressed', 'false');
+    previous.button.textContent = '▶ きく';
+  }
+  volume.addEventListener('input', () => {
+    document.getElementById('volume-value').textContent = `${volume.value}%`;
+    if (active) active.audio.volume = Number(volume.value) / 100;
+  });
+  document.getElementById('stop').addEventListener('click', () => { stop(); status.textContent = '音をとめました。'; });
+  for (const button of document.querySelectorAll('[data-sound]')) {
+    button.addEventListener('click', async () => {
+      stop();
+      const audio = new Audio();
+      const playback = { audio, button };
+      active = playback;
+      const name = button.closest('article').querySelector('h3').textContent;
+      audio.volume = Number(volume.value) / 100;
+      button.setAttribute('aria-pressed', 'true');
+      button.textContent = '♪ 再生中';
+      status.textContent = `${name}を再生しています。`;
+      const failed = () => {
+        if (active !== playback) return;
+        stop();
+        status.textContent = '音を読み込めませんでした。もう一度ボタンを押すか、WAVを保存してお試しください。';
+      };
+      audio.addEventListener('error', failed, { once:true });
+      audio.addEventListener('ended', () => {
+        if (active !== playback) return;
+        stop();
+        status.textContent = `${name}を聴き終わりました。もう一度、または別の音をどうぞ。`;
+      }, { once:true });
+      audio.src = `${button.dataset.sound}.wav`;
+      try { await audio.play(); } catch { failed(); }
+    });
+  }
+  window.addEventListener('pagehide', stop);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && active) { stop(); status.textContent = '音をとめました。'; }
+  });
+</script>
+</body>
+</html>
