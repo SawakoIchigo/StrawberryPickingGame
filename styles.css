@@ -7,6 +7,8 @@
   --cream:#fff9e9;
   --green:#37684e;
   --sprite-url:none;
+  --game-frame-width:100vw;
+  --game-frame-height:100dvh;
 }
 * {
   box-sizing:border-box;
@@ -887,8 +889,8 @@ h2 {
   display:none!important;
 }
 dialog {
-  width:min(440px,calc(100vw - 28px));
-  max-height:calc(100dvh - 28px);
+  width:min(440px,calc(var(--game-frame-width) - 28px));
+  max-height:calc(var(--game-frame-height) - 28px);
   overflow:auto;
   padding:32px;
   border:3px solid #fffef6;
@@ -1202,29 +1204,7 @@ summary {
     opacity:0;
   }
 }
-@media(min-width:760px) and (max-height:800px) {
-  .app {
-    padding-top:16px;
-    gap:12px;
-    min-height:650px;
-  }
-  .sidepanels {
-    justify-content:center;
-    gap:10px;
-  }
-  .lives {
-    flex-direction:row;
-    gap:10px;
-  }
-  .workbench {
-    padding-top:32px;
-    padding-bottom:10px;
-  }
-  .pack-hint {
-    margin:8px 0 6px;
-  }
-}
-@media(max-width:759px) {
+/* The same portrait controls and field layout apply on phones and PCs. */
   .app {
     height:100dvh;
     min-height:568px;
@@ -1444,8 +1424,20 @@ summary {
   .point-popup {
     font-size:22px;
   }
+@media(min-width:760px) {
+  :root {
+    --game-frame-width:min(100vw,56.25dvh);
+    --game-frame-height:min(100dvh,177.7777778vw);
+  }
+  .app {
+    width:var(--game-frame-width);
+    height:var(--game-frame-height);
+    min-height:0;
+    max-width:none;
+  }
 }
-@media(max-width:359px) {
+/* 638.22px of PC height produces a portrait frame about 359px wide. */
+@media(max-width:359px), (min-width:760px) and (max-height:638.22px) {
   .app {
     padding:8px 9px 2px;
     gap:6px;
@@ -1565,8 +1557,8 @@ summary {
     font-size:25px;
   }
 }
-/* Short phones reserve their height for the live field and the delivery button. */
-@media(max-width:759px) and (max-height:650px) {
+/* Short frames reserve their height for the live field and delivery button. */
+@media(max-height:650px) {
   .app {
     padding-top:5px;
     padding-bottom:2px;
@@ -1660,6 +1652,144 @@ summary {
   }
   .farm-footer>span {
     font-size:7px;
+  }
+}
+/* Small PC windows keep the 9:16 frame, with controls fitted to its width. */
+@media(min-width:760px) and (max-height:567px) {
+  .app {
+    padding:4px 6px 2px;
+    gap:4px;
+  }
+  .topbar {
+    height:40px;
+  }
+  .brand img,.brand .eyebrow {
+    display:none;
+  }
+  h1 {
+    font-size:17px;
+  }
+  .controls button {
+    min-width:34px;
+    min-height:36px;
+    padding:1px 2px;
+    gap:1px;
+  }
+  .controls button>span {
+    width:20px;
+    height:20px;
+    font-size:13px;
+  }
+  .controls small {
+    font-size:7px;
+  }
+  .game-layout {
+    gap:6px;
+  }
+  .workbench {
+    grid-template-columns:minmax(0,1fr) 88px;
+    padding:15px 6px 5px;
+    gap:4px;
+  }
+  .section-heading h2 {
+    font-size:11px;
+  }
+  .pack {
+    padding:3px;
+    gap:2px;
+  }
+  .pack-slot .sprite {
+    width:22px;
+    height:22px;
+    font-size:18px;
+  }
+  .ship {
+    font-size:9px;
+    padding:3px;
+    gap:2px;
+  }
+  .ship>span:first-child {
+    font-size:14px;
+  }
+  .friend-note img,.farm-footer>span {
+    display:none;
+  }
+  .farm-footer {
+    justify-content:flex-end;
+  }
+  dialog,.welcome-dialog {
+    padding:14px 10px;
+    border-radius:20px;
+  }
+  dialog h2,.welcome-dialog h2 {
+    font-size:20px;
+    margin:6px 0;
+  }
+  dialog p,.welcome-dialog p {
+    font-size:11px;
+    line-height:1.5;
+    margin:8px 0;
+  }
+  dialog .primary,.welcome-dialog .primary {
+    min-height:44px;
+    font-size:14px;
+    padding:8px;
+    margin-top:8px;
+    gap:12px;
+  }
+  .welcome-art {
+    width:min(100%,235px);
+    height:106px;
+    margin-bottom:6px;
+  }
+  .welcome-art img {
+    width:94px;
+    height:106px;
+  }
+  .welcome-art:before {
+    width:140px;
+    height:80px;
+    left:calc(50% - 70px);
+  }
+  .welcome-patch {
+    right:0;
+    bottom:12px;
+    padding:6px;
+    font-size:7px;
+  }
+  .welcome-dialog .welcome-note {
+    margin:8px 0 0;
+    font-size:7px;
+  }
+  .howto {
+    grid-template-columns:minmax(0,1fr);
+    gap:6px;
+    margin:10px 0;
+  }
+  .howto>div {
+    padding:6px;
+  }
+  .legend-item {
+    grid-template-columns:28px minmax(0,1fr) 42px;
+    column-gap:3px;
+    font-size:10px;
+  }
+  .legend-item .sprite {
+    width:26px;
+    height:26px;
+  }
+  .legend-points {
+    font-size:12px;
+  }
+  .dialog-actions {
+    flex-direction:column;
+    gap:6px;
+    margin-top:12px;
+  }
+}
+@media(min-width:760px) and (max-height:450px) {
+  .welcome-art {
+    display:none;
   }
 }
 @media(prefers-reduced-motion:reduce) {
