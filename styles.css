@@ -193,12 +193,6 @@ h1>span {
   align-items:center;
   justify-content:center;
 }
-.lives>span {
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:.03em;
-  color:#718166;
-}
 .life-hearts {
   display:flex;
   gap:5px;
@@ -289,8 +283,8 @@ h1>span {
   width:85px;
   height:24px;
   border-radius:50%;
-  background:#fffef0;
-  opacity:.6;
+  background:rgb(calc(255 - 99 * var(--rain-alpha,0)) calc(254 - 69 * var(--rain-alpha,0)) calc(240 - 35 * var(--rain-alpha,0)));
+  opacity:calc(.6 + .3 * var(--rain-alpha,0));
 }
 .cloud:before,.cloud:after {
   content:"";
@@ -323,10 +317,6 @@ h1>span {
   isolation:isolate;
   margin:0 12px 15px;
   overflow:hidden;
-}
-.farm-panel.is-raining .cloud {
-  background:#9cb9cd;
-  opacity:.9;
 }
 .farm-panel.is-raining .sun {
   opacity:.16;
@@ -1272,9 +1262,6 @@ summary {
     flex-direction:row;
     gap:10px;
   }
-  .lives>span {
-    font-size:9px;
-  }
   .life-hearts {
     gap:3px;
   }
@@ -1857,17 +1844,12 @@ summary {
 }
 .workbench .section-heading {
   height:auto;
-  min-height:32px;
+  min-height:22px;
 }
 .section-heading .lives {
-  flex-direction:column;
-  gap:2px;
+  flex-direction:row;
+  gap:0;
   flex:none;
-}
-.section-heading .lives>span {
-  font-size:8px;
-  line-height:1.2;
-  white-space:nowrap;
 }
 .section-heading .life-hearts {
   gap:2px;
