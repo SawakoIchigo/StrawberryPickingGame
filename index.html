@@ -158,7 +158,7 @@
       </section>
       </aside>
     </main>
-    <footer class="farm-footer"><span>ひとつ ひとつ、できた！が ふえる。</span><button id="restart" aria-label="はじめからやりなおす">↻ はじめから</button></footer>
+    <footer class="farm-footer"><span>ひとつ ひとつ、できた！が ふえる。</span><button id="sound-settings" data-open-audio aria-haspopup="dialog">♪ 音</button><button id="restart" aria-label="はじめからやりなおす">↻ はじめから</button></footer>
     <div id="point-effects" aria-hidden="true"></div>
     <p id="harvest-tip" role="status" aria-live="polite" hidden>いちごが あかくなるのを まってね</p>
   </div>
@@ -174,9 +174,10 @@
     <h2 id="welcome-title">いちご、<br><em>つみにいこう！</em></h2>
     <p>あかい いちごを ぽんっ。<br>8こ あつめて、みんなに おとどけ。</p>
     <button id="start" class="primary">あそぶ <span aria-hidden="true">→</span></button>
-    <p class="welcome-note">おと は でないよ。いつでも ひとやすみできるよ。</p>
+    <p class="welcome-note">おとが でるよ。「音」で おおきさを かえられるよ。</p>
+    <button class="audio-settings-link" data-open-audio aria-haspopup="dialog">♪ 音を かえる</button>
   </dialog>
-  <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀</span><span class="eyebrow">のんびり いこう</span><h2 id="pause-title">ちょっと ひとやすみ</h2><p>いちごも いっしょに おやすみ。<br>そだつ じかんは とまっているよ。</p><button id="resume" class="primary">つづきを あそぶ →</button></dialog>
+  <dialog id="pause-dialog" aria-labelledby="pause-title"><span class="dialog-emoji" aria-hidden="true">☀</span><span class="eyebrow">のんびり いこう</span><h2 id="pause-title">ちょっと ひとやすみ</h2><p>いちごも いっしょに おやすみ。<br>そだつ じかんは とまっているよ。</p><button id="resume" class="primary">つづきを あそぶ →</button><button class="audio-settings-link" data-open-audio aria-haspopup="dialog">♪ 音を かえる</button></dialog>
   <dialog id="restart-dialog" aria-labelledby="restart-title"><span class="dialog-emoji" aria-hidden="true">↻</span><h2 id="restart-title">はじめから あそぶ？</h2><p>いまの パックと ポイントが<br>ゼロに もどるよ。</p><div class="dialog-actions"><button id="cancel-restart" autofocus>もどる</button><button id="confirm-restart" class="primary">はじめから</button></div></dialog>
   <dialog id="gameover-dialog" aria-labelledby="gameover-title">
     <div class="result-medal" aria-hidden="true">★</div>
@@ -190,6 +191,14 @@
       <ol id="high-scores"></ol>
     </section>
     <button id="play-again" class="primary">もういっかい あそぶ →</button>
+    <button class="audio-settings-link" data-open-audio aria-haspopup="dialog">♪ 音を かえる</button>
+  </dialog>
+  <dialog id="audio-dialog" aria-labelledby="audio-title">
+    <h2 id="audio-title">音の おおきさ</h2>
+    <p>0にすると おとが とまるよ。</p>
+    <div class="audio-volume"><label for="sfx-volume">効果音</label><output id="sfx-volume-value" for="sfx-volume">55%</output><input id="sfx-volume" type="range" min="0" max="100" value="55"></div>
+    <div class="audio-volume"><label for="bgm-volume">BGM</label><output id="bgm-volume-value" for="bgm-volume">25%</output><input id="bgm-volume" type="range" min="0" max="100" value="25"></div>
+    <button id="close-audio" class="primary">とじる</button>
   </dialog>
   <script type="module" src="./game.js"></script>
 </body>

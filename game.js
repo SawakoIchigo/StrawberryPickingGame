@@ -1,9 +1,11 @@
 import { CONFIG, BERRY_NAMES, createGame, startGame, pauseGame, advance, berryStage, pickBerry, shipPack } from './game-core.js';
 import { FIELD, createFieldLayout, createPlantLayout, placeFruit, releaseFruit, sampleBreeze, leafPose, stepScoreDisplay } from './visual-layout.js';
 import { createHighScoreStore } from './high-scores.js';
+import { createGameAudio } from './audio.js';
 
 let game = createGame();
 const highScores = createHighScoreStore();
+const sound = createGameAudio();
 let visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
 let previousFrame = null;
 let renderAt = -Infinity;
@@ -199,11 +201,16 @@ function showPoints(button, points) {
 }
 function advanceAndShow(seconds) {
   const previousStatus = game.status;
-  for (const event of advance(game, seconds)) {
+  const events = advance(game, seconds);
+  for (const event of events) {
     const button = berryElements.get(event.berryId);
     if (button?.dataset.plantId === String(event.plantId)) showPoints(button, event.points);
   }
-  if (previousStatus !== 'gameover' && game.status === 'gameover') render();
+  sound.setState(game.status, game.rain.active);
+  if (previousStatus !== 'gameover' && game.status === 'gameover') {
+    sound.play('end');
+    render();
+  } else if (events.some(event => event.type === 'rot')) sound.play('rot');
 }
 function fitFarm() {
   const viewport = document.querySelector('.farm-viewport');
@@ -222,13 +229,17 @@ function syncTime() {
   previousFrame = now;
 }
 function begin() {
-  if (document.hidden || (game.status !== 'ready' && game.status !== 'paused')) return false;
+  if (document.hidden || $('audio-dialog').open || (game.status !== 'ready' && game.status !== 'paused')) return false;
+  const starting = game.status === 'ready';
+  sound.unlock();
   if (game.status === 'ready' && !hasShownHarvestTip) {
     hasShownHarvestTip = true;
     $('harvest-tip').hidden = false;
     harvestTipTimer = setTimeout(() => { $('harvest-tip').hidden = true; }, 3000);
   }
   startGame(game);
+  sound.setState(game.status, game.rain.active);
+  if (starting) sound.play('start');
   previousFrame = performance.now();
   if ($('welcome').open) $('welcome').close();
   if ($('pause-dialog').open) $('pause-dialog').close();
@@ -251,6 +262,8 @@ function harvest(plantId, berryId) {
   const rect = button?.getBoundingClientRect();
   const hadFocus = document.activeElement === button;
   if (!pickBerry(game, plantId, berryId)) return false;
+  sound.harvest();
+  if (game.pack.length === CONFIG.packSize) sound.play('full');
   showPoints(berryElements.get(berryId), points);
   announce(game.pack.length === CONFIG.packSize ? '8こ そろった！ おとどけしよう！' : `${praise[(game.pack.length - 1) % praise.length]} あと ${CONFIG.packSize - game.pack.length}こ`);
   render();
@@ -261,6 +274,7 @@ function harvest(plantId, berryId) {
 function ship() {
   syncTime();
   if (!shipPack(game)) return false;
+  sound.ship();
   const hadFocus = document.activeElement === $('ship');
   deliverySuccessUntil = performance.now() + 1900;
   announce(`${game.shipments}パック おとどけ！ また あつめよう！`);
@@ -329,6 +343,7 @@ function renderBreeze() {
   }
 }
 function render() {
+  sound.setState(game.status, game.rain.active);
   document.documentElement.dataset.gameStatus = game.status;
   const farmPanel = document.querySelector('.farm-panel');
   if (farmPanel.classList.contains('is-raining') !== game.rain.active) {
@@ -415,7 +430,7 @@ function render() {
   $('ship').setAttribute('aria-label', delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ あつめよう`);
   if (game.status === 'gameover' && !$('gameover-dialog').open) {
     clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
-    for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog']) if ($(id).open) $(id).close();
+    for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog', 'audio-dialog']) if ($(id).open) $(id).close();
     $('gameover-result').textContent = `${game.shipments}パック おとどけ ／ ${game.score}てん`;
     const record = highScores.record(game, game.score);
     $('new-record').hidden = !record.newRecord;
@@ -480,8 +495,9 @@ function cancelRestart() {
 $('cancel-restart').addEventListener('click', cancelRestart);
 $('restart-dialog').addEventListener('cancel', event => { event.preventDefault(); cancelRestart(); });
 function resetGame() {
+  sound.stop();
   deliverySuccessUntil = 0;
-  for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog', 'gameover-dialog']) if ($(id).open) $(id).close();
+  for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'restart-dialog', 'gameover-dialog', 'audio-dialog']) if ($(id).open) $(id).close();
   clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
   hasShownHarvestTip = false; guideWasRunning = false; restartPreviousStatus = 'ready';
   for (const [element, timer] of pointEffects) { clearTimeout(timer); element.remove(); }
@@ -502,7 +518,38 @@ $('play-again').addEventListener('click', () => { resetGame(); begin(); });
 for (const id of ['welcome', 'pause-dialog', 'gameover-dialog']) $(id).addEventListener('cancel', event => event.preventDefault());
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && game.status === 'running') pause();
+  if (document.hidden) sound.stop();
   previousFrame = performance.now();
+});
+window.addEventListener('pagehide', () => {
+  if (game.status === 'running') pause();
+  sound.setState(game.status, game.rain.active);
+  sound.stop();
+});
+
+let audioOpenedWhileRunning = false;
+let audioOpener;
+for (const button of document.querySelectorAll('[data-open-audio]')) button.addEventListener('click', () => {
+  syncTime();
+  audioOpener = button;
+  audioOpenedWhileRunning = game.status === 'running';
+  pauseGame(game);
+  sound.stop();
+  render();
+  $('audio-dialog').showModal();
+});
+function closeAudio() {
+  $('audio-dialog').close();
+  if (audioOpenedWhileRunning && game.status === 'paused' && !$('pause-dialog').open) $('pause-dialog').showModal();
+  else audioOpener?.focus({ preventScroll: true });
+  audioOpenedWhileRunning = false;
+}
+$('close-audio').addEventListener('click', closeAudio);
+$('audio-dialog').addEventListener('cancel', event => { event.preventDefault(); closeAudio(); });
+for (const kind of ['sfx', 'bgm']) $(`${kind}-volume`).addEventListener('input', event => {
+  const value = Number(event.target.value);
+  $(`${kind}-volume-value`).textContent = `${value}%`;
+  sound.setVolume(kind, value / 100);
 });
 function frame(now) {
   if (previousFrame !== null) advanceAndShow((now - previousFrame) / 1000);

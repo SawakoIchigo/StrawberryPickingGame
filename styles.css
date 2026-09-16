@@ -1,4 +1,11 @@
 @charset "UTF-8";
+.audio-settings-link { display:block; margin:10px auto 0; padding:6px 12px; min-height:32px; font-size:12px; }
+.audio-volume { display:grid; grid-template-columns:1fr auto; gap:8px; margin:18px 0; text-align:left; }
+.audio-volume label { font-weight:700; }
+.audio-volume output { font-variant-numeric:tabular-nums; }
+.audio-volume input { grid-column:1 / -1; width:100%; min-height:32px; accent-color:#dc4658; }
+#audio-dialog { max-width:min(360px,calc(100vw - 28px)); }
+#sound-settings { margin-left:auto; white-space:nowrap; }
 :root {
   font-family:"Hiragino Maru Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
   color:#335344;
