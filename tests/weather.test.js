@@ -150,7 +150,7 @@ test('each nearly finished stage stays ordered without being skipped or having i
   }
 });
 
-test('every stage entered during rain receives its own credit, with one rot event before disappearance', () => {
+test('every stage entered during rain receives its own credit, with one rot event at disappearance', () => {
   const { game, plant } = isolatedRain();
   plant.berries = [berry(1, [11, 12, 13, 14, 15, 16, 17])];
   const item = plant.berries[0];
@@ -171,7 +171,7 @@ test('every stage entered during rain receives its own credit, with one rot even
   events.push(...advanceTo(game, at));
   assert.equal(berryStage(item, at), -1);
   assert.equal(plant.berries.length, 0);
-  assert.deepEqual(events, [{ type: 'rot', plantId: plant.id, berryId: item.id, slot: 0, points: -500, at: item.stageEndsAt[5] }]);
+  assert.deepEqual(events, [{ type: 'rot', plantId: plant.id, berryId: item.id, slot: 0, points: -500, at: item.stageEndsAt[6] }]);
   assert.equal(game.missed, 1);
   assert.equal(game.lives, 9999);
   assert.equal(game.score, -500);
@@ -273,7 +273,7 @@ test('ready, pause and gameover freeze weather, while a clone resumes the same a
   const ending = isolatedRain();
   advanceTo(ending.game, 10);
   ending.game.lives = 1;
-  ending.plant.berries = [berry(1, [1, 2, 3, 4, 5, 11, 15])];
+  ending.plant.berries = [berry(1, [1, 2, 3, 4, 5, 9, 11])];
   assert.equal(advanceTo(ending.game, 11).length, 1);
   assert.equal(ending.game.status, 'gameover');
   assert.equal(ending.game.rain.active, true);

@@ -32,7 +32,7 @@ function inRange(value, baseline) {
   assert.ok(value >= baseline - 2 - 1e-9 && value <= baseline + 2 + 1e-9, `${value} must be within ${baseline} ± 2`);
 }
 function rotEvent(plantId, berry) {
-  return { type: 'rot', plantId, berryId: berry.id, slot: berry.slot, points: -500, at: berry.stageEndsAt[5] };
+  return { type: 'rot', plantId, berryId: berry.id, slot: berry.slot, points: -500, at: berry.stageEndsAt[6] };
 }
 
 test('initial farm has a stage-four plant and exactly one bud, flower, white, pink and red berry, waiting for start', () => {
@@ -193,7 +193,7 @@ test('reading ripeness and pausing preserve schedules and RNG; clones resume ide
   assert.notDeepEqual(createGame(42), createGame(43));
 });
 
-test('a berry changes at each saved boundary, emits one rot event, then disappears', () => {
+test('a berry changes at each saved boundary, emits one rot event only when it disappears', () => {
   for (const seed of [1, 42, 123456789]) {
     const game = running(seed);
     const berry = game.plants[0].berries[0];
@@ -206,6 +206,7 @@ test('a berry changes at each saved boundary, emits one rot event, then disappea
       const livesBefore = game.lives;
       const events = advanceTo(game, at);
       targetEvents.push(...events.filter(event => event.berryId === berry.id));
+      assert.equal(targetEvents.length, boundary === 6 ? 1 : 0);
       assert.equal(berryStage(berry, game.elapsed), boundary === 6 ? -1 : boundary + 1);
       assert.equal(game.score - scoreBefore, events.reduce((total, event) => total + event.points, 0));
       assert.equal(game.lives, livesBefore - events.length);
@@ -213,6 +214,30 @@ test('a berry changes at each saved boundary, emits one rot event, then disappea
     }
     assert.deepEqual(targetEvents, [rotEvent(1, berry)]);
   }
+});
+
+test('a rotten berry stays unpenalized through a pause and loses one life exactly at disappearance', () => {
+  const game = running();
+  const plant = game.plants[0];
+  const berry = plant.berries[0];
+  plant.berries = [berry];
+  plant.nextGrowthAt = Infinity; plant.nextSpawnAt = Infinity;
+  game.rain.nextStartsAt = Infinity;
+  assert.deepEqual(advanceTo(game, berry.stageEndsAt[5]), []);
+  assert.equal(berryStage(berry, game.elapsed), 6);
+  assert.deepEqual([game.score, game.lives, game.missed], [0, 10, 0]);
+  pauseGame(game);
+  const paused = structuredClone(game);
+  assert.deepEqual(advance(game, 100), []);
+  assert.deepEqual(game, paused);
+  startGame(game);
+  assert.deepEqual(advanceTo(game, berry.stageEndsAt[6] - .001), []);
+  assert.deepEqual([game.score, game.lives, game.missed], [0, 10, 0]);
+  assert.deepEqual(advanceTo(game, berry.stageEndsAt[6]), [rotEvent(plant.id, berry)]);
+  assert.deepEqual([game.score, game.lives, game.missed], [-500, 9, 1]);
+  assert.equal(plant.berries.length, 0);
+  assert.deepEqual(advance(game, .001), []);
+  assert.deepEqual([game.score, game.lives, game.missed], [-500, 9, 1]);
 });
 
 test('an expired berry loses points once even if its rotten stage was skipped', () => {
@@ -246,11 +271,11 @@ test('picked berries never produce a later rot notification', () => {
 
 test('rot notifications belong only to their advance call and preserve source slots and times', () => {
   const game = running();
-  const berries = [...game.plants[0].berries].sort((a, b) => a.stageEndsAt[5] - b.stageEndsAt[5]);
-  const first = advanceTo(game, berries[0].stageEndsAt[5]);
+  const berries = [...game.plants[0].berries].sort((a, b) => a.stageEndsAt[6] - b.stageEndsAt[6]);
+  const first = advanceTo(game, berries[0].stageEndsAt[6]);
   const savedFirst = structuredClone(first);
   assert.deepEqual(first, [rotEvent(1, berries[0])]);
-  const second = advanceTo(game, berries[1].stageEndsAt[5]);
+  const second = advanceTo(game, berries[1].stageEndsAt[6]);
   assert.deepEqual(second.find(event => event.berryId === berries[1].id), rotEvent(1, berries[1]));
   assert.ok(second.every(event => event.berryId !== berries[0].id));
   assert.notEqual(first, second);
@@ -451,10 +476,18 @@ test('the final loss stops same-timestamp rot processing, including already expi
     const template = plant.berries[0];
     plant.berries = Array.from({ length: 7 }, (_, slot) => ({ ...template, id: slot + 1, slot,
       stageEndsAt: expired ? [-7, -6, -5, -4, -3, -2, -1] : [-4, -3, -2, -1, 0, 1, 5] }));
+    const originals = [...plant.berries];
+    const at = expired ? 1 : 5;
+    game.plants.push({ ...plant, id: 2, berries: [
+      { ...template, id: 8, stageEndsAt: [...plant.berries[0].stageEndsAt] },
+      { ...template, id: 9, stageEndsAt: [10, 11, 12, 13, 14, 15, 16] },
+    ] });
     const events = advance(game, expired ? 1 : 10);
-    assert.deepEqual(events.map(event => [event.berryId, event.at]), [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]);
-    assert.deepEqual(plant.berries.map(berry => berry.countedRotten), [true, true, true, true, true, false, false]);
-    assert.equal(game.elapsed, 1);
+    assert.deepEqual(events.map(event => [event.berryId, event.at]), [[1, at], [2, at], [3, at], [4, at], [5, at]]);
+    assert.deepEqual(originals.map(berry => berry.countedRotten), [true, true, true, true, true, false, false]);
+    assert.equal(plant.berries.length, 0);
+    assert.deepEqual(game.plants[1].berries.map(item => item.id), [9]);
+    assert.equal(game.elapsed, at);
     assert.equal(game.lives, 0);
     assert.equal(game.missed, 5);
     assert.equal(game.score, -2500);

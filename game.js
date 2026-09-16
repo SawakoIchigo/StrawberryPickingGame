@@ -90,6 +90,7 @@ let hasShownHarvestTip = false;
 let harvestTipTimer;
 let guideWasRunning = false;
 let deliverySuccessUntil = 0;
+let gameoverShowAt = 0;
 const effectTimers = new Map();
 const praise = ['とれた！ じょうず！', 'いいね！ おいしそう！', 'ぽんっ！ できたね！', 'すてきな いちご！'];
 function removeLater(element, milliseconds) {
@@ -126,6 +127,20 @@ function celebrateHarvest(rect) {
   }
   $('point-effects').append(burst);
   removeLater(burst, 780);
+}
+function showMissedBerry(button) {
+  if (!button) return false;
+  const rect = button.getBoundingClientRect();
+  const appRect = document.querySelector('.app').getBoundingClientRect();
+  const ripple = document.createElement('span');
+  ripple.className = 'missed-ripple';
+  ripple.setAttribute('aria-hidden', 'true');
+  ripple.style.left = `${rect.left + rect.width / 2 - appRect.left}px`;
+  ripple.style.top = `${rect.top + rect.height / 2 - appRect.top}px`;
+  ripple.style.setProperty('--missed-size', `${Math.max(26, rect.width * 40 / FIELD.hitSize)}px`);
+  $('point-effects').append(ripple);
+  removeLater(ripple, 1000);
+  return true;
 }
 function celebrateDelivery() {
   const celebration = document.createElement('div');
@@ -201,15 +216,20 @@ function showPoints(button, points) {
 function advanceAndShow(seconds) {
   const previousStatus = game.status;
   const events = advance(game, seconds);
+  let showedFailure = false;
   for (const event of events) {
     const button = berryElements.get(event.berryId);
-    if (button?.dataset.plantId === String(event.plantId)) showPoints(button, event.points);
+    if (button?.dataset.plantId === String(event.plantId)) {
+      showPoints(button, event.points);
+      if (event.type === 'rot') showedFailure = showMissedBerry(button) || showedFailure;
+    }
   }
   sound.setState(game.status, game.rain.active);
   if (previousStatus !== 'gameover' && game.status === 'gameover') {
+    gameoverShowAt = showedFailure ? performance.now() + 800 : 0;
     sound.play('end');
     render();
-  } else if (events.some(event => event.type === 'rot')) sound.play('rot');
+  } else if (events.some(event => event.type === 'rot')) { sound.play('rot'); render(); }
 }
 function fitFarm() {
   const viewport = document.querySelector('.farm-viewport');
@@ -447,8 +467,10 @@ function render() {
       item.append(position, value);
       return item;
     }));
-    announce('おせわ ありがとう！ きょうの きろくを みよう。');
-    $('gameover-dialog').showModal();
+    if (performance.now() >= gameoverShowAt) {
+      announce('おせわ ありがとう！ きょうの きろくを みよう。');
+      $('gameover-dialog').showModal();
+    }
   }
 }
 for (let i = 0; i < BERRY_NAMES.length; i++) {
@@ -456,7 +478,7 @@ for (let i = 0; i < BERRY_NAMES.length; i++) {
   item.className = `legend-item${i >= 3 && i <= 5 ? ' pickable' : ''}${i === 4 ? ' best-ripeness' : ''}`;
   const name = document.createElement('span'); name.className = 'legend-name'; name.textContent = BERRY_NAMES[i];
   const detail = document.createElement('span'); detail.className = 'legend-detail';
-  detail.textContent = i < 3 ? 'もうすこし まってね' : i === 6 ? 'ハートが ひとつ へるよ' : i === 4 ? 'いちばん おいしい！' : 'つめるよ！';
+  detail.textContent = i < 3 ? 'もうすこし まってね' : i === 6 ? 'きえると ハートが へるよ' : i === 4 ? 'いちばん おいしい！' : 'つめるよ！';
   const points = document.createElement('strong'); points.className = 'legend-points';
   points.textContent = berryPoints[i] ? `${berryPoints[i] > 0 ? '+' : '−'}${Math.abs(berryPoints[i])}点` : '—';
   item.append(sprite(i + 5, i), name, detail, points);
@@ -481,6 +503,7 @@ $('close-guide').addEventListener('click', closeGuide);
 $('guide-dialog').addEventListener('cancel', event => { event.preventDefault(); closeGuide(); });
 function resetGame() {
   sound.stop();
+  gameoverShowAt = 0;
   deliverySuccessUntil = 0;
   for (const id of ['welcome', 'pause-dialog', 'guide-dialog', 'gameover-dialog']) if ($(id).open) $(id).close();
   clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;

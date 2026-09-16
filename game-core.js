@@ -98,14 +98,19 @@ function processEvents(game, events = []) {
     for (const berry of plant.berries) {
       waterBerry(game, berry);
       const stage = berryStage(berry, game.elapsed);
-      if ((stage === 6 || stage === -1) && !berry.countedRotten) {
+      if (stage === -1 && !berry.countedRotten) {
         berry.countedRotten = true;
         game.missed++;
         game.score += CONFIG.berryPoints[6];
         game.lives = Math.max(0, game.lives - 1);
         events.push({ type: 'rot', plantId: plant.id, berryId: berry.id, slot: berry.slot,
           points: CONFIG.berryPoints[6], at: game.elapsed });
-        if (game.lives === 0) { game.status = 'gameover'; return; }
+        if (game.lives === 0) {
+          // Stop penalties at zero lives, but never leave expired fruit for the UI.
+          for (const current of game.plants) current.berries = current.berries.filter(item => berryStage(item, game.elapsed) !== -1);
+          game.status = 'gameover';
+          return;
+        }
       }
     }
     plant.berries = plant.berries.filter(berry => berryStage(berry, game.elapsed) !== -1);

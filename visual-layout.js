@@ -2,7 +2,7 @@
 export const SCENE = Object.freeze({ width: 300, height: 330, minimumWidth: 250, hitSize: 48 });
 // minimumScale is the supported 320×568-and-larger phone baseline for tests;
 // the UI may scale further on unusually small screens instead of clipping.
-export const FIELD = Object.freeze({ width: 300, height: 360, renderWidth: 350, potRotation: 20, hitSize: 30, minimumScale: .8, leafScale: .22, leafSize: 1.35 });
+export const FIELD = Object.freeze({ width: 300, height: 360, renderWidth: 350, potRotation: 15, hitSize: 30, minimumScale: .8, leafScale: .22, leafSize: 1.35 });
 export function fieldPlantOrigin(index, field) {
   const position = field ? field.plantOrder[index] : index;
   return [{ x: 150, y: 200 }, { x: 150, y: 100 }, { x: 225, y: 150 }, { x: 225, y: 250 }, { x: 150, y: 300 }, { x: 75, y: 250 }, { x: 75, y: 150 }][position];
@@ -93,7 +93,7 @@ export function createFieldLayout(seed) {
   const points = [];
   // Vacant cells give the collision-safe relaxation room to break up rows.
   const cells = [];
-  for (let y = 16; y < FIELD.height; y += FRUIT_CLEARANCE) {
+  for (let y = 15; y < FIELD.height; y += FRUIT_CLEARANCE) {
     for (let x = 8; x < FIELD.width; x += FRUIT_CLEARANCE) {
       if (fruitInsideSoil(x, y)) cells.push({ x, y });
     }

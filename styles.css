@@ -578,7 +578,7 @@ h1>span {
   height:360px;
   left:50%;
   top:50%;
-  transform:translate(-50%,-50%) scale(var(--farm-scale,1)) rotate(var(--pot-rotation,20deg));
+  transform:translate(-50%,-50%) scale(var(--farm-scale,1)) rotate(var(--pot-rotation,15deg));
   transform-origin:center;
   filter:saturate(.82) brightness(1.15);
 }
@@ -788,7 +788,23 @@ h2 {
   white-space:nowrap;
 }
 .point-popup.negative {
-  color:#76657b;
+  color:#971c32;
+}
+.missed-ripple { position:absolute; width:0; height:0; pointer-events:none; }
+.missed-ripple:before,.missed-ripple:after {
+  content:"";
+  position:absolute;
+  width:var(--missed-size);
+  height:var(--missed-size);
+  border:3px solid #971c32;
+  border-radius:50%;
+  box-shadow:0 0 0 1px #fff1df,0 0 9px #971c3266;
+  animation:missed-ring .8s ease-out both;
+}
+.missed-ripple:after { border-color:#b72e43; animation-delay:.12s; }
+@keyframes missed-ring {
+  0% { transform:translate(-50%,-50%) scale(.45); opacity:.95; }
+  100% { transform:translate(-50%,-50%) scale(2.4); opacity:0; }
 }
 .harvest-burst {
   position:absolute;
