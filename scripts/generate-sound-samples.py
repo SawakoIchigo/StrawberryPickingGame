@@ -1,10 +1,11 @@
-"""Rebuild the original six sounds and two finales using only Python 3.11.
+"""Rebuild ten voice-free sound candidates using only Python 3.11.
 
 Run from any directory: python scripts/generate-sound-samples.py
 All oscillators, envelopes and echoes are deterministic; no recorded audio.
 """
 
 import math
+import random
 from pathlib import Path
 import struct
 import wave
@@ -60,6 +61,47 @@ def echo(samples, seconds, gain):
     offset = round(seconds * RATE)
     for index in range(offset, len(samples)):
         samples[index] += original[index - offset] * gain
+
+
+def paper_noise(duration, seed, decay, low_cut=650, high_cut=3600, attack=.003):
+    """Soft band-limited noise, with two low-pass poles and a smooth envelope."""
+    rng = random.Random(seed)
+    upper = 1 - math.exp(-TAU * high_cut / RATE)
+    lower = 1 - math.exp(-TAU * low_cut / RATE)
+    low = pole1 = pole2 = 0.0
+    samples = []
+    count = round(duration * RATE)
+    for index in range(count):
+        t = index / RATE
+        noise = rng.uniform(-1, 1)
+        low += lower * (noise - low)
+        pole1 += upper * (noise - low - pole1)
+        pole2 += upper * (pole1 - pole2)
+        envelope = smooth(t / attack) * math.exp(-t / decay)
+        envelope *= smooth((count - 1 - index) / (RATE * .025))
+        samples.append(pole2 * envelope)
+    return samples
+
+
+def cracker(target, start, seed, gain=1.0):
+    # A short rounded body gives the paper crack weight, without a sharp click.
+    mix(target, paper_noise(.16, seed, .037, 340, 3300, .0028), start, 3.3 * gain)
+    mix(target, voice(.14, 170, ROUND, .035, .003, sweep=.85), start, .52 * gain)
+
+
+def confetti(target, seed, start, duration, gain=1.0):
+    # Many separate, quiet paper flutters rather than a continuous hiss.
+    rng = random.Random(seed)
+    at = start
+    index = 0
+    while at < start + duration:
+        progress = (at - start) / duration
+        length = rng.uniform(.038, .075)
+        flutter = paper_noise(length, seed + index + 1, .023,
+                              rng.uniform(700, 1100), rng.uniform(2400, 3400), .006)
+        mix(target, flutter, at, gain * (1 - progress) ** 1.2 * rng.uniform(.5, 1))
+        at += rng.uniform(.025, .055)
+        index += 1
 
 
 def finish(samples, target_rms):
@@ -142,6 +184,22 @@ def candidates():
         mix(finale_b, voice(.6, note(midi), CHIME, .14, .008), start, gain)
     echo(finale_b, .084, .12)
     yield 'ship-finale-b', [math.tanh(value * 1.1) / 1.1 for value in finale_b], .135
+
+    # Party poppers match the game's paper launch; melody stays secondary.
+    popper_a = [0.0] * round(.94 * RATE)
+    cracker(popper_a, 0, 5401)
+    confetti(popper_a, 6101, .065, .77, 1.4)
+    echo(popper_a, .021, .09)
+    yield 'ship-popper-a', [math.tanh(value * 4) / 4 for value in popper_a], .13
+
+    popper_b = [0.0] * round(1.34 * RATE)
+    cracker(popper_b, 0, 5501, .85)
+    cracker(popper_b, .061, 5502, .95)
+    confetti(popper_b, 6201, .11, 1.04, 1.25)
+    for start, midi, gain in [(.22, 79, .095), (.31, 84, .10), (.42, 88, .07)]:
+        mix(popper_b, voice(.8, note(midi), BELL, .18, .012), start, gain)
+    echo(popper_b, .027, .08)
+    yield 'ship-popper-b', [math.tanh(value * 4) / 4 for value in popper_b], .13
 
 
 def main():
