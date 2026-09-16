@@ -10,6 +10,20 @@ let visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
 let previousFrame = null;
 let renderAt = -Infinity;
 const $ = id => document.getElementById(id);
+function setText(element, value) {
+  const text = String(value);
+  if (element.textContent !== text) element.textContent = text;
+}
+function setAttribute(element, name, value) {
+  const text = String(value);
+  if (element.getAttribute(name) !== text) element.setAttribute(name, text);
+}
+function toggleClass(element, name, enabled) {
+  if (element.classList.contains(name) !== enabled) element.classList.toggle(name, enabled);
+}
+function setDisabled(element, disabled) {
+  if (element.disabled !== disabled) element.disabled = disabled;
+}
 const lifeHearts = Array.from({ length: CONFIG.initialLives }, () => {
   const heart = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   heart.classList.add('life-heart');
@@ -31,15 +45,29 @@ let scoreDisplay = { value: game.score, at: performance.now(), active: false };
 function renderScore(now = performance.now(), immediate = false) {
   const next = stepScoreDisplay(scoreDisplay, game.score, now, immediate);
   if (next.value !== scoreDisplay.value) scoreValue.textContent = next.value;
-  scoreGroup.classList.toggle('is-counting', next.active);
+  if (next.active !== scoreDisplay.active) scoreGroup.classList.toggle('is-counting', next.active);
   scoreDisplay = next;
 }
 const rainCurtain = document.querySelector('.rain-curtain');
-const rainFarm = document.querySelector('.farm-panel');
+const rainClouds = [...document.querySelectorAll('.cloud')];
 const rainParticles = Array.from(document.querySelectorAll('.rain-drop'), element => ({ element }));
 let rainWidth = 0;
 let rainHeight = 0;
 let rainWasActive = false;
+let lastRainAlpha;
+function setRainAlpha(alpha) {
+  if (lastRainAlpha === alpha) return;
+  rainCurtain.style.opacity = alpha;
+  for (const cloud of rainClouds) cloud.style.setProperty('--rain-alpha', alpha);
+  lastRainAlpha = alpha;
+}
+function updateRainPath(particle) {
+  const distance = rainHeight + 64;
+  particle.distance = distance;
+  particle.startX = particle.x * Math.max(0, rainWidth - particle.size);
+  particle.travelX = Math.min(distance * particle.drift, Math.max(0, rainWidth - particle.size - particle.startX));
+  particle.angle = -Math.atan2(particle.travelX, distance) * 180 / Math.PI;
+}
 
 // Visual randomness never consumes either of the game's saved random streams.
 function seedRainParticle(particle, now, initial) {
@@ -53,24 +81,23 @@ function seedRainParticle(particle, now, initial) {
   particle.element.style.width = `${particle.size}px`;
   particle.element.style.height = `${particle.size * 1.75}px`;
   particle.element.style.opacity = String(.55 + Math.random() * .2);
+  updateRainPath(particle);
 }
 
 function renderRain() {
+  if (document.hidden) return;
   if (!game.rain.active) {
-    rainCurtain.style.opacity = '0';
-    rainFarm.style.setProperty('--rain-alpha', '0');
+    setRainAlpha('0');
     rainWasActive = false;
     return;
   }
   // Fade within the scheduled shower, so no rain lingers after its effect ends.
   const fadeProgress = Math.max(0, Math.min(1, game.elapsed - game.rain.startedAt, game.rain.endsAt - game.elapsed));
   const rainAlpha = String(fadeProgress * fadeProgress * (3 - 2 * fadeProgress));
-  rainCurtain.style.opacity = rainAlpha;
-  rainFarm.style.setProperty('--rain-alpha', rainAlpha);
+  setRainAlpha(rainAlpha);
   const initialize = !rainWasActive;
   if (!initialize && game.status !== 'running') return;
   rainWasActive = true;
-  const distance = rainHeight + 64;
   for (let index = 0; index < rainParticles.length; index++) {
     const particle = rainParticles[index];
     if (initialize) seedRainParticle(particle, game.elapsed, true);
@@ -78,12 +105,13 @@ function renderRain() {
       seedRainParticle(particle, game.elapsed, false);
     }
     const progress = (game.elapsed - particle.start) / particle.duration;
-    particle.element.style.visibility = progress < 0 ? 'hidden' : 'visible';
+    const visible = progress >= 0;
+    if (particle.visible !== visible) {
+      particle.element.style.visibility = visible ? 'visible' : 'hidden';
+      particle.visible = visible;
+    }
     if (progress < 0) continue;
-    const startX = particle.x * Math.max(0, rainWidth - particle.size);
-    const drift = Math.min(distance * particle.drift, Math.max(0, rainWidth - particle.size - startX));
-    const angle = -Math.atan2(drift, distance) * 180 / Math.PI;
-    particle.element.style.transform = `translate3d(${startX + drift * progress}px,${distance * progress}px,0) rotate(${angle}deg)`;
+    particle.element.style.transform = `translate3d(${particle.startX + particle.travelX * progress}px,${particle.distance * progress}px,0) rotate(${particle.angle}deg)`;
   }
 }
 let hasShownHarvestTip = false;
@@ -176,15 +204,18 @@ function sprite(index, stage, appearance) {
   const element = document.createElement('span');
   element.className = 'sprite';
   element.setAttribute('aria-hidden', 'true');
-  element.style.setProperty('--sprite-column', index % 4);
-  element.style.setProperty('--sprite-row', Math.floor(index / 4));
-  element.textContent = fallback[index];
-  if (stage !== undefined) element.dataset.stage = stage;
+  updateSprite(element, index, stage);
   if (appearance) {
     element.style.setProperty('--berry-size', appearance.size);
     element.style.setProperty('--berry-angle', `${appearance.angle}deg`);
   }
   return element;
+}
+function updateSprite(element, index, stage) {
+  element.style.setProperty('--sprite-column', index % 4);
+  element.style.setProperty('--sprite-row', Math.floor(index / 4));
+  setText(element, fallback[index]);
+  if (stage !== undefined) element.dataset.stage = stage;
 }
 // The game works with emoji while the optional local atlas loads.
 const atlas = new Image();
@@ -238,6 +269,7 @@ function fitFarm() {
   viewport.style.setProperty('--pot-rotation', `${FIELD.potRotation}deg`);
   rainWidth = viewport.clientWidth;
   rainHeight = viewport.clientHeight;
+  for (const particle of rainParticles) if (particle.duration !== undefined) updateRainPath(particle);
   $('farm').style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 new ResizeObserver(fitFarm).observe(document.querySelector('.farm-viewport'));
@@ -352,33 +384,37 @@ function buildPlant(plant) {
   return view;
 }
 function renderBreeze() {
-  if (game.status !== 'running') return;
-  const breeze = sampleBreeze(game.elapsed);
+  if (document.hidden || game.status !== 'running') return;
+  // Bound the position error below .003 scene pixels while avoiding SVG
+  // invalidation for imperceptibly small changes in the slow breeze.
+  const breeze = Math.round(sampleBreeze(game.elapsed) * 256) / 256;
   for (const view of plantElements.values()) for (const leaf of view.leaves) {
     if (leaf.stage > view.stage) continue;
+    if (leaf.breeze === breeze) continue;
     const pose = leafPose(view.anatomy, leaf.model, breeze);
     const transform = `translate(${pose.x.toFixed(3)} ${pose.y.toFixed(3)}) rotate(${pose.angle.toFixed(3)}) scale(${leaf.model.size * FIELD.leafScale * FIELD.leafSize})`;
     if (leaf.transform !== transform) { leaf.element.setAttribute('transform', transform); leaf.transform = transform; }
     if (leaf.path !== pose.path) { leaf.stalk.setAttribute('d', pose.path); leaf.path = pose.path; }
+    leaf.breeze = breeze;
   }
 }
 function render() {
   sound.setState(game.status, game.rain.active);
-  document.documentElement.dataset.gameStatus = game.status;
+  setAttribute(document.documentElement, 'data-game-status', game.status);
   const farmPanel = document.querySelector('.farm-panel');
   if (farmPanel.classList.contains('is-raining') !== game.rain.active) {
     farmPanel.classList.toggle('is-raining', game.rain.active);
     $('weather-sign').textContent = game.rain.active ? 'あめで すくすく！' : 'いちごの はたけ';
     document.querySelector('.farm-viewport').setAttribute('aria-label', game.rain.active ? 'いちご畑。あめで すくすく！ いちごの へんかが はやくなるよ' : '一つの鉢に育つ7株のいちご');
   }
-  $('shipments').textContent = game.shipments;
+  setText($('shipments'), game.shipments);
   renderScore();
   if ($('lives').dataset.remaining !== String(game.lives)) {
     $('lives').dataset.remaining = game.lives;
     $('lives').setAttribute('aria-label', `残りライフ${game.lives} / ${CONFIG.initialLives}`);
     lifeHearts.forEach((heart, index) => heart.classList.toggle('lost', index >= game.lives));
   }
-  $('pause').disabled = game.status !== 'running';
+  setDisabled($('pause'), game.status !== 'running');
   const liveBerryIds = new Set(game.plants.flatMap(plant => plant.berries.map(berry => berry.id)));
   const visibleBerryIds = new Set([...liveBerryIds, ...game.pack.map(berry => berry.id)]);
   for (const id of berryAppearances.keys()) if (!visibleBerryIds.has(id)) berryAppearances.delete(id);
@@ -400,7 +436,7 @@ function render() {
     const occupiedSlots = new Set(plant.berries.map(berry => berry.slot));
     const plantBerryIds = new Set(plant.berries.map(berry => berry.id));
     for (const id of view.anatomy.occupiedCells.keys()) if (!plantBerryIds.has(id)) releaseFruit(view.anatomy, id);
-    view.stalks.forEach((stalk, index) => stalk.classList.toggle('occupied', occupiedSlots.has(index)));
+    view.stalks.forEach((stalk, index) => toggleClass(stalk, 'occupied', occupiedSlots.has(index)));
     for (const berry of plant.berries) {
       const stage = berryStage(berry, game.elapsed);
       let button = berryElements.get(berry.id);
@@ -420,20 +456,21 @@ function render() {
       const ripe = stage >= 3 && stage <= 5;
       if (button.dataset.stage !== String(stage)) {
         button.dataset.stage = stage;
-        button.className = `berry${ripe ? ' ripe' : ''}${stage === 6 ? ' rotten' : ''}`;
-        button.replaceChildren(sprite(stage + 5, stage, berryAppearances.get(berry.id)));
+        setAttribute(button, 'class', `berry${ripe ? ' ripe' : ''}${stage === 6 ? ' rotten' : ''}`);
+        if (button.firstElementChild) updateSprite(button.firstElementChild, stage + 5, stage);
+        else button.append(sprite(stage + 5, stage, berryAppearances.get(berry.id)));
+        button.setAttribute('aria-label', `${plant.id}ばんの株、${BERRY_NAMES[stage]}${ripe ? 'を収穫' : ''}`);
       }
-      button.disabled = !ripe || game.status !== 'running' || game.pack.length === CONFIG.packSize;
-      button.setAttribute('aria-label', `${plant.id}ばんの株、${BERRY_NAMES[stage]}${ripe ? 'を収穫' : ''}`);
+      setDisabled(button, !ripe || game.status !== 'running' || game.pack.length === CONFIG.packSize);
     }
   }
-  $('pack-count').textContent = `${game.pack.length} / ${CONFIG.packSize}`;
+  setText($('pack-count'), `${game.pack.length} / ${CONFIG.packSize}`);
   const full = game.pack.length === CONFIG.packSize;
   if (full || game.status === 'gameover') deliverySuccessUntil = 0;
   const delivered = performance.now() < deliverySuccessUntil;
-  document.querySelector('.workbench').classList.toggle('is-full', full);
+  toggleClass(document.querySelector('.workbench'), 'is-full', full);
   const pickableCount = [...berryElements.values()].filter(button => !button.disabled).length;
-  $('field-hint').textContent = full ? 'パックが いっぱい！ おとどけしよう' : pickableCount ? 'いちごを タップしてね！' : 'ゆっくり そだっているよ';
+  setText($('field-hint'), full ? 'パックが いっぱい！ おとどけしよう' : pickableCount ? 'いちごを タップしてね！' : 'ゆっくり そだっているよ');
   const signature = game.pack.map(berry => berry.id).join(',');
   if ($('pack').dataset.signature !== signature) {
     $('pack').dataset.signature = signature;
@@ -444,10 +481,10 @@ function render() {
       return slot;
     }));
   }
-  $('ship').disabled = game.pack.length !== CONFIG.packSize || game.status !== 'running';
-  $('ship').classList.toggle('is-delivered', delivered);
-  $('ship-label').textContent = delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ`;
-  $('ship').setAttribute('aria-label', delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ あつめよう`);
+  setDisabled($('ship'), game.pack.length !== CONFIG.packSize || game.status !== 'running');
+  toggleClass($('ship'), 'is-delivered', delivered);
+  setText($('ship-label'), delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ`);
+  setAttribute($('ship'), 'aria-label', delivered ? 'おとどけ できた！' : full ? 'おとどけする！' : `あと ${CONFIG.packSize - game.pack.length}こ あつめよう`);
   if (game.status === 'gameover' && !$('gameover-dialog').open) {
     clearTimeout(harvestTipTimer); $('harvest-tip').hidden = true;
     for (const id of ['welcome', 'pause-dialog', 'guide-dialog']) if ($(id).open) $(id).close();

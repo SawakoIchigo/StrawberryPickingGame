@@ -503,10 +503,12 @@ h1>span {
   border:3px solid #ea2548;
   border-radius:50%;
   pointer-events:none;
-  animation:ripe-wave 2.4s ease-out infinite;
+  animation:ripe-wave 2.4s ease-out 2 forwards;
 }
 .berry.ripe::after {
-  animation-delay:-1.2s;
+  animation-iteration-count:1;
+  animation-delay:1.4s;
+  opacity:0;
 }
 @keyframes ripe-wave {
   0% {
@@ -595,7 +597,7 @@ h1>span {
   animation-duration:2.8s;
 }
 .berry.ripe:after {
-  animation-delay:-1.4s;
+  animation-delay:1.4s;
 }
 .berry:focus-visible {
   outline:3px solid #136d9e;
