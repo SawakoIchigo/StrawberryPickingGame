@@ -340,6 +340,7 @@ h1>span {
 .rain-curtain {
   --rain-play-state:running;
   display:none;
+  opacity:0;
   position:absolute;
   inset:0;
   z-index:5;
@@ -356,7 +357,7 @@ h1>span {
   top:-32px;
   width:12px;
   height:21px;
-  opacity:.95;
+  opacity:.65;
   pointer-events:none;
   visibility:hidden;
 }
@@ -1681,7 +1682,7 @@ summary {
   .harvest-flight,.harvest-burst,.celebration i {
     display:none;
   }
-  /* JavaScript keeps sixteen readable droplets with slower falling. */
+  /* JavaScript keeps twenty-four readable droplets with slower falling. */
   .rain-splash {
     display:none;
   }

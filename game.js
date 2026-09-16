@@ -21,6 +21,7 @@ const plantElements = new Map();
 const berryElements = new Map();
 const berryPoints = CONFIG.berryPoints;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const rainCurtain = document.querySelector('.rain-curtain');
 const rainParticles = Array.from(document.querySelectorAll('.rain-drop'), element => ({ element }));
 let rainWidth = 0;
 let rainHeight = 0;
@@ -39,14 +40,18 @@ function seedRainParticle(particle, now, initial) {
   particle.size = 9 + Math.random() * 3;
   particle.element.style.width = `${particle.size}px`;
   particle.element.style.height = `${particle.size * 1.75}px`;
-  particle.element.style.opacity = String(.85 + Math.random() * .15);
+  particle.element.style.opacity = String(.55 + Math.random() * .2);
 }
 
 function renderRain() {
   if (!game.rain.active) {
+    rainCurtain.style.opacity = '0';
     rainWasActive = false;
     return;
   }
+  // Fade within the scheduled shower, so no rain lingers after its effect ends.
+  const fadeProgress = Math.max(0, Math.min(1, game.elapsed - game.rain.startedAt, game.rain.endsAt - game.elapsed));
+  rainCurtain.style.opacity = String(fadeProgress * fadeProgress * (3 - 2 * fadeProgress));
   const gentle = reducedMotion.matches;
   const initialize = !rainWasActive || rainWasReduced !== gentle;
   if (!initialize && game.status !== 'running') return;
