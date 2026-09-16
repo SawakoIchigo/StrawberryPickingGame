@@ -21,6 +21,8 @@ const lifeHearts = Array.from({ length: CONFIG.initialLives }, () => {
 const fallback = ['🌱', '🌱', '🌿', '🌿', '🌳', '🌱', '🌼', '⚪', '🍓', '🍓', '🍓', '🥀'];
 const plantElements = new Map();
 const berryElements = new Map();
+// Keep each fruit's appearance through growth and harvest, until it is shipped.
+const berryAppearances = new Map();
 const berryPoints = CONFIG.berryPoints;
 const scoreValue = $('score');
 const scoreGroup = document.querySelector('.score-stat strong');
@@ -154,7 +156,7 @@ function celebrateDelivery() {
   $('point-effects').append(celebration);
   removeLater(celebration, 2300);
 }
-function sprite(index, stage) {
+function sprite(index, stage, appearance) {
   const element = document.createElement('span');
   element.className = 'sprite';
   element.setAttribute('aria-hidden', 'true');
@@ -162,6 +164,10 @@ function sprite(index, stage) {
   element.style.setProperty('--sprite-row', Math.floor(index / 4));
   element.textContent = fallback[index];
   if (stage !== undefined) element.dataset.stage = stage;
+  if (appearance) {
+    element.style.setProperty('--berry-size', appearance.size);
+    element.style.setProperty('--berry-angle', `${appearance.angle}deg`);
+  }
   return element;
 }
 // The game works with emoji while the optional local atlas loads.
@@ -275,14 +281,14 @@ function buildPlant(plant) {
     element.classList.add('leaf-group');
     element.setAttribute('transform', `translate(${origin.x + (leaf.x - anatomy.crown.x) * FIELD.leafScale} ${origin.y + (leaf.y - anatomy.crown.y) * FIELD.leafScale}) rotate(${leaf.angle}) scale(${leaf.size * FIELD.leafScale * FIELD.leafSize})`);
     // All blades start at their branch endpoint; the midrib shares that base.
-    for (const { x, y, angle, length, width } of leaf.blades) {
+    for (const { x, y, angle, length, width, scale } of leaf.blades) {
       const branch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       branch.classList.add('leaf-branch');
       const angleRadians = angle * Math.PI / 180;
       branch.setAttribute('d', `M0 0 C0 -3 ${x - Math.sin(angleRadians) * 5} ${y + Math.cos(angleRadians) * 5} ${x} ${y}`);
       element.append(branch);
       const blade = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      blade.setAttribute('transform', `translate(${x} ${y}) rotate(${angle}) scale(${width} ${length})`);
+      blade.setAttribute('transform', `translate(${x} ${y}) rotate(${angle}) scale(${width * scale} ${length * scale})`);
       blade.innerHTML = '<path class="leaf-blade" d="M0 0 C-10 -3 -16 -11 -15 -18 L-18 -20 L-14 -23 L-16 -26 L-11 -29 L-12 -32 L-7 -34 Q-3 -40 0 -44 Q3 -40 7 -34 L12 -32 L11 -29 L16 -26 L14 -23 L18 -20 L15 -18 C16 -11 10 -3 0 0Z"/><path class="leaf-vein" d="M0 -1 L0 -39 M0 -10 L-9 -17 M0 -18 L-11 -26 M0 -27 L-7 -33 M0 -10 L9 -17 M0 -18 L11 -26 M0 -27 L7 -33"/>';
       element.append(blade);
     }
@@ -339,6 +345,8 @@ function render() {
   }
   $('pause').disabled = game.status !== 'running';
   const liveBerryIds = new Set(game.plants.flatMap(plant => plant.berries.map(berry => berry.id)));
+  const visibleBerryIds = new Set([...liveBerryIds, ...game.pack.map(berry => berry.id)]);
+  for (const id of berryAppearances.keys()) if (!visibleBerryIds.has(id)) berryAppearances.delete(id);
   for (const [id, button] of berryElements) {
     if (!liveBerryIds.has(id)) { button.remove(); berryElements.delete(id); }
   }
@@ -363,6 +371,7 @@ function render() {
       let button = berryElements.get(berry.id);
       if (!button) {
         const attachment = placeFruit(view.anatomy, berry.id, berry.slot);
+        berryAppearances.set(berry.id, { size: attachment.size, angle: attachment.angle });
         view.slots[berry.slot].style.left = `${attachment.x / 3}%`;
         view.slots[berry.slot].style.top = `${attachment.y / 3.6}%`;
         view.stalks[berry.slot].setAttribute('d', attachment.path);
@@ -377,7 +386,7 @@ function render() {
       if (button.dataset.stage !== String(stage)) {
         button.dataset.stage = stage;
         button.className = `berry${ripe ? ' ripe' : ''}${stage === 6 ? ' rotten' : ''}`;
-        button.replaceChildren(sprite(stage + 5, stage));
+        button.replaceChildren(sprite(stage + 5, stage, berryAppearances.get(berry.id)));
       }
       button.disabled = !ripe || game.status !== 'running' || game.pack.length === CONFIG.packSize;
       button.setAttribute('aria-label', `${plant.id}ばんの株、${BERRY_NAMES[stage]}${ripe ? 'を収穫' : ''}`);
@@ -395,7 +404,7 @@ function render() {
     $('pack').dataset.signature = signature;
     $('pack').replaceChildren(...Array.from({ length: CONFIG.packSize }, (_, i) => {
       const slot = document.createElement('div'); slot.className = 'pack-slot';
-      if (game.pack[i]) { slot.classList.add('filled'); slot.append(sprite(game.pack[i].stage + 5, game.pack[i].stage)); slot.setAttribute('aria-label', `${i + 1}こめ、${BERRY_NAMES[game.pack[i].stage]}`); }
+      if (game.pack[i]) { slot.classList.add('filled'); slot.append(sprite(game.pack[i].stage + 5, game.pack[i].stage, berryAppearances.get(game.pack[i].id))); slot.setAttribute('aria-label', `${i + 1}こめ、${BERRY_NAMES[game.pack[i].stage]}`); }
       else { slot.textContent = i + 1; slot.setAttribute('aria-label', `${i + 1}こめ、から`); }
       return slot;
     }));
@@ -482,7 +491,7 @@ function resetGame() {
   game = createGame();
   renderScore(performance.now(), true);
   visualField = createFieldLayout(Math.floor(Math.random() * 4294967296));
-  plantElements.clear(); berryElements.clear(); $('farm').replaceChildren();
+  plantElements.clear(); berryElements.clear(); berryAppearances.clear(); $('farm').replaceChildren();
   announce('いっしょに いちごを つもう！');
   previousFrame = performance.now();
   render();

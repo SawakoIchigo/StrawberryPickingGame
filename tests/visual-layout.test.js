@@ -133,8 +133,8 @@ test('breeze is slow and irregular, bending connected leaves while roots and fru
         const tip = leafPose => {
           const angle = leafPose.angle * Math.PI / 180;
           const bladeAngle = blade.angle * Math.PI / 180;
-          const x = blade.x + Math.sin(bladeAngle) * blade.length * 44;
-          const y = blade.y - Math.cos(bladeAngle) * blade.length * 44;
+          const x = blade.x + Math.sin(bladeAngle) * blade.length * blade.scale * 44;
+          const y = blade.y - Math.cos(bladeAngle) * blade.length * blade.scale * 44;
           const size = leaf.size * FIELD.leafScale * FIELD.leafSize;
           return { x: leafPose.x + (x * Math.cos(angle) - y * Math.sin(angle)) * size,
             y: leafPose.y + (x * Math.sin(angle) + y * Math.cos(angle)) * size };

@@ -129,6 +129,9 @@ export function createFieldLayout(seed) {
 
 export function createPlantLayout(seed, plantIndex = 0, field = createFieldLayout(seed)) {
   const random = createRandom(seed);
+  // Separate streams preserve the existing leaf shapes and fruit placements.
+  const leafSizeRandom = createRandom(seed ^ 0x4C454146);
+  const fruitAppearanceRandom = createRandom(seed ^ 0x46525549);
   const crown = { x: between(random, 137, 163), y: between(random, 295, 302) };
   const leafRegions = [[85, 245], [215, 245], [150, 90], [57, 135], [242, 139]];
   const leaves = leafRegions.map(([baseX, baseY], index) => {
@@ -138,13 +141,13 @@ export function createPlantLayout(seed, plantIndex = 0, field = createFieldLayou
     const size = between(random, .86, 1);
     // Last control follows the group's downward axis, so the petiole enters
     // the junction smoothly and continues into the three short branches.
-    const blades = [[-8, -4, -58], [0, -11, 0], [8, -4, 58]].map(([x, y, angle]) => ({ x, y, angle: angle + between(random, -5, 5), length: between(random, .93, 1.06), width: between(random, .91, 1.04) }));
-    return { stage: index + 1, x, y, size, angle, radius: 61, blades,
+    const blades = [[-8, -4, -58], [0, -11, 0], [8, -4, 58]].map(([x, y, angle]) => ({ x, y, angle: angle + between(random, -5, 5), length: between(random, .93, 1.06), width: between(random, .91, 1.04), scale: between(leafSizeRandom, .85, 1.15) }));
+    return { stage: index + 1, x, y, size, angle, radius: 61 * Math.max(1, ...blades.map(blade => blade.scale)), blades,
       path: petiolePath(crown, x, y, angle) };
   });
   const fieldCrown = fieldPlantOrigin(plantIndex, field);
   const regions = field.points.flatMap((point, index) => point.owner === plantIndex ? [index] : []);
-  return { crown, leaves, random, plantIndex, field, regions, fieldCrown, occupiedCells: new Map(), previousCells: new Map() };
+  return { crown, leaves, random, fruitAppearanceRandom, plantIndex, field, regions, fieldCrown, occupiedCells: new Map(), previousCells: new Map() };
 }
 
 export function releaseFruit(layout, berryId) { layout.occupiedCells.delete(berryId); }
@@ -171,7 +174,7 @@ export function placeFruit(layout, berryId, slot) {
   // A convex soil polygon contains the whole curve when all controls are inside.
   const first = { x: crown.x * .65 + x * .35, y: crown.y * .65 + endY * .35 };
   const second = { x: x * .9 + 150 * .1, y: endY * .9 + 175 * .1 };
-  return { x, y, cell, path: `M${number(crown.x)} ${number(crown.y)} C${number(first.x)} ${number(first.y)} ${number(second.x)} ${number(second.y)} ${number(x)} ${number(endY)}` };
+  return { x, y, cell, size: between(layout.fruitAppearanceRandom, .85, 1.15), angle: between(layout.fruitAppearanceRandom, -5, 5), path: `M${number(crown.x)} ${number(crown.y)} C${number(first.x)} ${number(first.y)} ${number(second.x)} ${number(second.y)} ${number(x)} ${number(endY)}` };
 }
 
 // Display-only score interpolation: no timers and no model mutations.

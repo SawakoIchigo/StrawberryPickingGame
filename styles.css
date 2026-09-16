@@ -483,11 +483,14 @@ h1>span {
   font-size:36px;
   pointer-events:none;
 }
+.berry .sprite,.pack-slot .sprite {
+  transform:rotate(var(--berry-angle,0deg)) scale(var(--berry-size,1));
+}
 .berry .sprite[data-stage="0"] {
-  transform:translateY(-2px) rotate(180deg);
+  transform:translateY(-2px) rotate(180deg) rotate(var(--berry-angle,0deg)) scale(var(--berry-size,1));
 }
 .berry .sprite[data-stage="1"] {
-  transform:translateY(-3px);
+  transform:translateY(-3px) rotate(var(--berry-angle,0deg)) scale(var(--berry-size,1));
 }
 .berry.rotten .sprite {
   opacity:.85;
