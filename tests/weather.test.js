@@ -16,6 +16,7 @@ function between(value, [minimum, maximum]) {
 function isolatedRain() {
   const game = running();
   const plant = game.plants[0];
+  game.plants = [plant];
   plant.stage = 5;
   plant.nextGrowthAt = Infinity;
   plant.nextSpawnAt = Infinity;
@@ -43,7 +44,7 @@ function assertCredit(original, watered, at, bonus) {
 
 test('weather keeps the original growth seed sequence and has an independent saved random stream', () => {
   const initial = createGame(42);
-  assert.equal(initial.rngState, 1635343518, 'one plant and five complete seven-stage schedules consume the growth stream');
+  assert.equal(initial.rngState, 2187141202, 'two plants and ten complete seven-stage schedules consume the growth stream');
   assert.equal(initial.plants[0].nextGrowthAt, 14.009380699135363);
   assert.deepEqual(initial.plants[0].berries[0].stageEndsAt,
     [2.352500181645155, 6.661624974571168, 10.55184203851968, 15.054482826963067,
@@ -93,20 +94,20 @@ test('showers start every 30–60 game seconds, last 5–10 seconds, and keep on
   }
 });
 
-test('the five backdated initial stages receive rain once without changing past boundaries or growth RNG', () => {
+test('both plants receive rain on their five initial stages once without changing past boundaries or growth RNG', () => {
   const game = running();
-  const initial = structuredClone(game.plants[0].berries);
+  const initial = structuredClone(game.plants);
   const rng = game.rngState;
   game.rain.nextStartsAt = .5;
   advanceTo(game, .5);
-  for (const [stage, berry] of game.plants[0].berries.entries()) {
+  for (const [index, plant] of game.plants.entries()) for (const [stage, berry] of plant.berries.entries()) {
     assert.equal(berryStage(berry, game.elapsed), stage);
-    assertCredit(initial[stage], berry, .5, game.rain.bonusSeconds);
+    assertCredit(initial[index].berries[stage], berry, .5, game.rain.bonusSeconds);
     assert.deepEqual(berry.rainBoostedStages, [stage]);
   }
-  const watered = structuredClone(game.plants[0].berries);
+  const watered = structuredClone(game.plants);
   advance(game, .001);
-  assert.deepEqual(game.plants[0].berries, watered);
+  assert.deepEqual(game.plants, watered);
   assert.equal(game.rngState, rng);
   assert.equal(game.score, 0);
 });

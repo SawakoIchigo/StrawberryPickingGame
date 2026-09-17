@@ -76,9 +76,11 @@ export function createGame(seed = Math.floor(Math.random() * 0x100000000)) {
     weatherRngState: (seed ^ 0x9e3779b9) >>> 0,
     rain: { active: false, startedAt: null, endsAt: null, nextStartsAt: null, bonusSeconds: 0 } };
   game.rain.nextStartsAt = weatherDuration(game, CONFIG.rainIntervalSeconds);
-  const plant = addPlant(game, 4);
-  for (let stage = 0; stage <= 4; stage++) addBerry(game, plant, stage, stage);
-  plant.nextSpawnAt = game.elapsed + CONFIG.spawnIntervalSeconds[plant.stage];
+  for (let index = 0; index < 2; index++) {
+    const plant = addPlant(game, 4);
+    for (let stage = 0; stage <= 4; stage++) addBerry(game, plant, stage, stage);
+    plant.nextSpawnAt = game.elapsed + CONFIG.spawnIntervalSeconds[plant.stage];
+  }
   return game;
 }
 export function startGame(game) { if (game.status === 'ready' || game.status === 'paused') game.status = 'running'; }
